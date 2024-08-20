@@ -10,8 +10,6 @@ var _database = require("firebase/database");
 var _firestore = require("firebase/firestore");
 var _functions = require("firebase/functions");
 var _storage = require("firebase/storage");
-var _dotenv = _interopRequireDefault(require("dotenv"));
-function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
 /**
  * firebase.init.js
  *
@@ -72,12 +70,6 @@ function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default":
  */
 
 /* eslint-disable */
-
-// 必要な .env ファイルをロード
-_dotenv["default"].config({
-  path: ".env.".concat(process.env.NODE_ENV || "local")
-});
-console.log(process.cwd());
 
 /**
  * .envファイルに設定されているべきfirebaseの接続に必要なプロパティ
