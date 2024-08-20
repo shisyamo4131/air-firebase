@@ -10,8 +10,10 @@ var _database = require("firebase/database");
 var _firestore = require("firebase/firestore");
 var _functions = require("firebase/functions");
 var _storage = require("firebase/storage");
+var _dotenv = _interopRequireDefault(require("dotenv"));
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
 /**
- * firebase-v2.js
+ * firebase.init.js
  *
  * @version 1.0.0
  * @author shisyamo4131
@@ -62,7 +64,7 @@ var _storage = require("firebase/storage");
  * firebaseの各種サービスを初期化するモジュールとして初代のfirebase.jsはNuxtのInjectを利用していたため、
  * プレーンなjsファイルでこれらのサービスを利用することができませんでした。
  * （別途エクスポートすれば利用可能でしたが、サービスへのアプローチ方法が統一されないという欠点が生じた）
- * firebase-v2.jsではNuxtのInjectを利用せずに各種サービスをエクスポートすることで、Nuxtコンポーネントに限らず、
+ * firebase.init.jsではNuxtのInjectを利用せずに各種サービスをエクスポートすることで、Nuxtコンポーネントに限らず、
  * プレーンなjsファイルからもアクセスできるようにしました。
  *
  * @updates
@@ -71,15 +73,21 @@ var _storage = require("firebase/storage");
 
 /* eslint-disable */
 
+// 必要な .env ファイルをロード
+_dotenv["default"].config({
+  path: ".env.".concat(process.env.NODE_ENV || "local")
+});
+console.log(process.cwd());
+
 /**
  * .envファイルに設定されているべきfirebaseの接続に必要なプロパティ
  */
-var requiredProps = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+var requiredProps = ["apiKey", "authDomain", "projectId", "storageBucket", "messagingSenderId", "appId"];
 
 /**
  * .envファイルに設定される可能性のあるfirebaseの接続プロパティ
  */
-var optionalProps = ['databaseURL', 'vapidKey'];
+var optionalProps = ["databaseURL", "vapidKey"];
 
 /**
  * 読み込んだ.envファイルの設定内容を検証します。
@@ -97,9 +105,9 @@ function verifyConfiguration(config) {
     });
     if (missingProps.length) {
       if (isRequired) {
-        throw new Error("[firebase-v2.js] Missing required Firebase properties: ".concat(missingProps.join(', ')));
+        throw new Error("[firebase.init.js] Missing required Firebase properties: ".concat(missingProps.join(", ")));
       } else {
-        console.warn("[firebase-v2.js] Optional Firebase properties are not set: ".concat(missingProps.join(', '), ". If you do not use them, you can ignore this message."));
+        console.warn("[firebase.init.js] Optional Firebase properties are not set: ".concat(missingProps.join(", "), ". If you do not use them, you can ignore this message."));
       }
     }
   };
@@ -114,14 +122,22 @@ function verifyConfiguration(config) {
 /******************************************************************************
  * メインフロー
  ******************************************************************************/
-console.info("[firebase-v2.js] Connecting to firebase as ".concat(process.env.NODE_ENV, " mode."));
+console.info("[firebase.init.js] Connecting to firebase as ".concat(process.env.NODE_ENV, " mode."));
 
 // 環境変数に応じたfirebaseのconfigを読み込みます。
-var firebaseConfig = require("@/.env.".concat(process.env.NODE_ENV, ".js"));
+var firebaseConfig = {
+  apiKey: process.env.API_KEY,
+  authDomain: process.env.AUTH_DOMAIN,
+  projectId: process.env.PROJECT_ID,
+  storageBucket: process.env.STORAGE_BUCKET,
+  messagingSenderId: process.env.MESSAGING_SENDER_ID,
+  appId: process.env.APP_ID,
+  databaseURL: process.env.DATABASE_URL || "",
+  vapidKey: process.env.VAPID_KEY || ""
+};
 
 // configの内容を検証
 verifyConfiguration(firebaseConfig);
-console.info("[firebase-v2.js] Connect to firebase as ".concat(process.env.NODE_ENV, " mode."));
 
 // firebaseの初期化 -> 既に初期化済みであれば初期化済みアプリを参照
 var firebaseApp = (0, _app.getApps)().length ? (0, _app.getApps)()[0] : (0, _app.initializeApp)(firebaseConfig);
@@ -134,15 +150,16 @@ var database = exports.database = (0, _database.getDatabase)(firebaseApp);
 var storage = exports.storage = (0, _storage.getStorage)(firebaseApp);
 
 // messageサービスのvapidKeyを取得
-var vapidKey = exports.vapidKey = (firebaseConfig === null || firebaseConfig === void 0 ? void 0 : firebaseConfig.vapidKey) || '';
+var vapidKey = exports.vapidKey = (firebaseConfig === null || firebaseConfig === void 0 ? void 0 : firebaseConfig.vapidKey) || "";
 
 // envが`local`であった場合、接続先をエミュレータに切り替え
 if (process.env.NODE_ENV === "local") {
-  (0, _auth.connectAuthEmulator)(auth, 'http://localhost:9099');
-  (0, _functions.connectFunctionsEmulator)(functions, 'localhost', 5001);
-  (0, _firestore.connectFirestoreEmulator)(firestore, 'localhost', 8080);
-  (0, _database.connectDatabaseEmulator)(database, 'localhost', 9000);
-  (0, _storage.connectStorageEmulator)(storage, 'localhost', 9199);
+  // connectAuthEmulator(auth, "http://localhost:9099");
+  (0, _auth.connectAuthEmulator)(auth, "http://127.0.0.1:9099");
+  (0, _functions.connectFunctionsEmulator)(functions, "localhost", 5001);
+  (0, _firestore.connectFirestoreEmulator)(firestore, "localhost", 8080);
+  (0, _database.connectDatabaseEmulator)(database, "localhost", 9000);
+  (0, _storage.connectStorageEmulator)(storage, "localhost", 9199);
 }
 
 /* eslint-enable */

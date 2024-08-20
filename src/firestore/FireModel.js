@@ -14,8 +14,8 @@ import {
   where,
   writeBatch,
 } from "firebase/firestore";
-import { getMessage } from "./firestore-messages";
-import { auth, firestore } from "../firebase.init";
+import { getMessage } from "./firestore-messages.js";
+import { auth, firestore } from "../firebase.init.js";
 
 /**
  * FireModelクラスは、Firestoreコレクションに対する基本的なCRUD操作を提供するための基盤クラスです。

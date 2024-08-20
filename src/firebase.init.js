@@ -1,5 +1,5 @@
 /**
- * firebase-v2.js
+ * firebase.init.js
  *
  * @version 1.0.0
  * @author shisyamo4131
@@ -50,7 +50,7 @@
  * firebaseの各種サービスを初期化するモジュールとして初代のfirebase.jsはNuxtのInjectを利用していたため、
  * プレーンなjsファイルでこれらのサービスを利用することができませんでした。
  * （別途エクスポートすれば利用可能でしたが、サービスへのアプローチ方法が統一されないという欠点が生じた）
- * firebase-v2.jsではNuxtのInjectを利用せずに各種サービスをエクスポートすることで、Nuxtコンポーネントに限らず、
+ * firebase.init.jsではNuxtのInjectを利用せずに各種サービスをエクスポートすることで、Nuxtコンポーネントに限らず、
  * プレーンなjsファイルからもアクセスできるようにしました。
  *
  * @updates
@@ -58,29 +58,29 @@
  */
 
 /* eslint-disable */
-import { getApps, initializeApp } from 'firebase/app'
-import { getAuth, connectAuthEmulator } from 'firebase/auth'
-import { getDatabase, connectDatabaseEmulator } from 'firebase/database'
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions'
-import { getStorage, connectStorageEmulator } from 'firebase/storage'
+import { getApps, initializeApp } from "firebase/app";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getDatabase, connectDatabaseEmulator } from "firebase/database";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
+import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 /**
  * .envファイルに設定されているべきfirebaseの接続に必要なプロパティ
  */
 const requiredProps = [
-  'apiKey',
-  'authDomain',
-  'projectId',
-  'storageBucket',
-  'messagingSenderId',
-  'appId',
-]
+  "apiKey",
+  "authDomain",
+  "projectId",
+  "storageBucket",
+  "messagingSenderId",
+  "appId",
+];
 
 /**
  * .envファイルに設定される可能性のあるfirebaseの接続プロパティ
  */
-const optionalProps = ['databaseURL', 'vapidKey']
+const optionalProps = ["databaseURL", "vapidKey"];
 
 /**
  * 読み込んだ.envファイルの設定内容を検証します。
@@ -93,71 +93,77 @@ function verifyConfiguration(config) {
    * @param {boolean} isRequired trueならば必須プロパティとして扱います
    */
   const checkProps = (props, isRequired) => {
-    const missingProps = props.filter((prop) => !(prop in config))
+    const missingProps = props.filter((prop) => !(prop in config));
     if (missingProps.length) {
       if (isRequired) {
         throw new Error(
-          `[firebase-v2.js] Missing required Firebase properties: ${missingProps.join(
-            ', '
+          `[firebase.init.js] Missing required Firebase properties: ${missingProps.join(
+            ", "
           )}`
-        )
+        );
       } else {
         console.warn(
-          `[firebase-v2.js] Optional Firebase properties are not set: ${missingProps.join(
-            ', '
+          `[firebase.init.js] Optional Firebase properties are not set: ${missingProps.join(
+            ", "
           )}. If you do not use them, you can ignore this message.`
-        )
+        );
       }
     }
-  }
+  };
 
   // 必須プロパティをチェック
-  checkProps(requiredProps, true)
+  checkProps(requiredProps, true);
 
   // オプションプロパティをチェック
-  checkProps(optionalProps, false)
+  checkProps(optionalProps, false);
 }
 
 /******************************************************************************
  * メインフロー
  ******************************************************************************/
 console.info(
-  `[firebase-v2.js] Connecting to firebase as ${process.env.NODE_ENV} mode.`
-)
+  `[firebase.init.js] Connecting to firebase as ${process.env.NODE_ENV} mode.`
+);
 
 // 環境変数に応じたfirebaseのconfigを読み込みます。
-const firebaseConfig = require(`@/.env.${process.env.NODE_ENV}.js`)
+const firebaseConfig = {
+  apiKey: process.env.API_KEY,
+  authDomain: process.env.AUTH_DOMAIN,
+  projectId: process.env.PROJECT_ID,
+  storageBucket: process.env.STORAGE_BUCKET,
+  messagingSenderId: process.env.MESSAGING_SENDER_ID,
+  appId: process.env.APP_ID,
+  databaseURL: process.env.DATABASE_URL || "",
+  vapidKey: process.env.VAPID_KEY || "",
+};
 
 // configの内容を検証
-verifyConfiguration(firebaseConfig)
-
-console.info(
-  `[firebase-v2.js] Connect to firebase as ${process.env.NODE_ENV} mode.`
-)
+verifyConfiguration(firebaseConfig);
 
 // firebaseの初期化 -> 既に初期化済みであれば初期化済みアプリを参照
 const firebaseApp = getApps().length
   ? getApps()[0]
-  : initializeApp(firebaseConfig)
+  : initializeApp(firebaseConfig);
 
 // firebaseの各種サービスを取得
-const auth = getAuth(firebaseApp)
-const functions = getFunctions(firebaseApp)
-const firestore = getFirestore(firebaseApp)
-const database = getDatabase(firebaseApp)
-const storage = getStorage(firebaseApp)
+const auth = getAuth(firebaseApp);
+const functions = getFunctions(firebaseApp);
+const firestore = getFirestore(firebaseApp);
+const database = getDatabase(firebaseApp);
+const storage = getStorage(firebaseApp);
 
 // messageサービスのvapidKeyを取得
-const vapidKey = firebaseConfig?.vapidKey || ''
+const vapidKey = firebaseConfig?.vapidKey || "";
 
 // envが`local`であった場合、接続先をエミュレータに切り替え
 if (process.env.NODE_ENV === `local`) {
-  connectAuthEmulator(auth, 'http://localhost:9099')
-  connectFunctionsEmulator(functions, 'localhost', 5001)
-  connectFirestoreEmulator(firestore, 'localhost', 8080)
-  connectDatabaseEmulator(database, 'localhost', 9000)
-  connectStorageEmulator(storage, 'localhost', 9199)
+  // connectAuthEmulator(auth, "http://localhost:9099");
+  connectAuthEmulator(auth, "http://127.0.0.1:9099");
+  connectFunctionsEmulator(functions, "localhost", 5001);
+  connectFirestoreEmulator(firestore, "localhost", 8080);
+  connectDatabaseEmulator(database, "localhost", 9000);
+  connectStorageEmulator(storage, "localhost", 9199);
 }
 
-export { auth, functions, firestore, database, storage, vapidKey }
+export { auth, functions, firestore, database, storage, vapidKey };
 /* eslint-enable */

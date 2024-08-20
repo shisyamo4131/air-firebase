@@ -1,11 +1,14 @@
 {
   "name": "air-firemodel",
-  "version": "0.0.3",
+  "version": "0.0.8",
   "description": "A Firestore model class to manage Firestore collections with CRUD operations, auto-numbering, logical deletion, and more.",
+  "type": "module",
   "main": "dist/firestore/FireModel.js",
   "scripts": {
     "build": "babel src --out-dir dist",
-    "test": "jest"
+    "test": "jest",
+    "test-local": "cross-env NODE_ENV=local node index.js",
+    "test-dev": "cross-env NODE_ENV=dev node index.js"
   },
   "repository": {
     "type": "git",
@@ -14,6 +17,8 @@
   "author": "shisyamo4131",
   "license": "MIT",
   "dependencies": {
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.5",
     "firebase": "^10.6.0"
   },
   "devDependencies": {

@@ -6,8 +6,8 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports["default"] = void 0;
 var _firestore = require("firebase/firestore");
-var _firestoreMessages = require("./firestore-messages");
-var _firebase = require("../firebase.init");
+var _firestoreMessages = require("./firestore-messages.js");
+var _firebaseInit = require("../firebase.init.js");
 function _createForOfIteratorHelper(r, e) { var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (!t) { if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) { t && (r = t); var _n = 0, F = function F() {}; return { s: F, n: function n() { return _n >= r.length ? { done: !0 } : { done: !1, value: r[_n++] }; }, e: function e(r) { throw r; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var o, a = !0, u = !1; return { s: function s() { t = t.call(r); }, n: function n() { var r = t.next(); return a = r.done, r; }, e: function e(r) { u = !0, o = r; }, f: function f() { try { a || null == t["return"] || t["return"](); } finally { if (u) throw o; } } }; }
 function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
 function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
@@ -331,8 +331,8 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
               _context2.prev = 3;
               this.createAt = new Date();
               this.updateAt = new Date();
-              this.uid = (_firebase.auth === null || _firebase.auth === void 0 || (_auth$currentUser = _firebase.auth.currentUser) === null || _auth$currentUser === void 0 ? void 0 : _auth$currentUser.uid) || "unknown";
-              colRef = (0, _firestore.collection)(_firebase.firestore, _classPrivateFieldGet(_collectionPath, this));
+              this.uid = (_firebaseInit.auth === null || _firebaseInit.auth === void 0 || (_auth$currentUser = _firebaseInit.auth.currentUser) === null || _auth$currentUser === void 0 ? void 0 : _auth$currentUser.uid) || "unknown";
+              colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
               docRef = docId ? (0, _firestore.doc)(colRef, docId).withConverter(_assertClassBrand(_FireModel_brand, this, _converter).call(this)) : (0, _firestore.doc)(colRef).withConverter(_assertClassBrand(_FireModel_brand, this, _converter).call(this));
               this.docId = docRef.id;
               _context2.next = 12;
@@ -343,7 +343,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
                 break;
               }
               _context2.next = 15;
-              return (0, _firestore.runTransaction)(_firebase.firestore, /*#__PURE__*/function () {
+              return (0, _firestore.runTransaction)(_firebaseInit.firestore, /*#__PURE__*/function () {
                 var _ref4 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(transaction) {
                   return _regeneratorRuntime().wrap(function _callee$(_context) {
                     while (1) switch (_context.prev = _context.next) {
@@ -428,7 +428,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
             case 4:
               console.info((0, _firestoreMessages.getMessage)(sender, "FETCH_CALLED", _classPrivateFieldGet(_collectionPath, this), docId));
               _context3.prev = 5;
-              colRef = (0, _firestore.collection)(_firebase.firestore, _classPrivateFieldGet(_collectionPath, this));
+              colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
               docRef = (0, _firestore.doc)(colRef, docId);
               _context3.next = 10;
               return (0, _firestore.getDoc)(docRef);
@@ -493,7 +493,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
             case 4:
               console.info((0, _firestoreMessages.getMessage)(sender, "FETCH_DOC_CALLED", _classPrivateFieldGet(_collectionPath, this), docId));
               _context4.prev = 5;
-              colRef = (0, _firestore.collection)(_firebase.firestore, _classPrivateFieldGet(_collectionPath, this));
+              colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
               docRef = (0, _firestore.doc)(colRef, docId).withConverter(_assertClassBrand(_FireModel_brand, this, _converter).call(this));
               _context4.next = 10;
               return (0, _firestore.getDoc)(docRef);
@@ -549,7 +549,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
               sender = "FireModel - fetchDocs";
               console.info((0, _firestoreMessages.getMessage)(sender, "FETCH_DOCS_CALLED", _classPrivateFieldGet(_collectionPath, this)));
               _context5.prev = 3;
-              colRef = (0, _firestore.collection)(_firebase.firestore, _classPrivateFieldGet(_collectionPath, this));
+              colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
               q = _firestore.query.apply(void 0, [colRef].concat(_toConsumableArray(constraints))).withConverter(_assertClassBrand(_FireModel_brand, this, _converter).call(this));
               _context5.next = 8;
               return (0, _firestore.getDocs)(q);
@@ -597,13 +597,13 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
               }
               throw new Error((0, _firestoreMessages.getMessage)(sender, "UPDATE_REQUIRES_DOCID"));
             case 5:
-              colRef = (0, _firestore.collection)(_firebase.firestore, _classPrivateFieldGet(_collectionPath, this));
+              colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
               docRef = (0, _firestore.doc)(colRef, this.docId); // updateDocの場合、withConverter.toFirestoreは使用できない。
               _context6.next = 9;
               return this.beforeUpdate();
             case 9:
               this.updateAt = new Date();
-              this.uid = (_firebase.auth === null || _firebase.auth === void 0 || (_auth$currentUser2 = _firebase.auth.currentUser) === null || _auth$currentUser2 === void 0 ? void 0 : _auth$currentUser2.uid) || "unknown";
+              this.uid = (_firebaseInit.auth === null || _firebaseInit.auth === void 0 || (_auth$currentUser2 = _firebaseInit.auth.currentUser) === null || _auth$currentUser2 === void 0 ? void 0 : _auth$currentUser2.uid) || "unknown";
               _context6.next = 13;
               return (0, _firestore.updateDoc)(docRef, this.toObject());
             case 13:
@@ -668,7 +668,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
               }
               throw new Error((0, _firestoreMessages.getMessage)(sender, "COULD_NOT_DELETE_CHILD_EXIST", hasChild.collection));
             case 10:
-              colRef = (0, _firestore.collection)(_firebase.firestore, _classPrivateFieldGet(_collectionPath, this));
+              colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
               docRef = (0, _firestore.doc)(colRef, this.docId);
               _context7.next = 14;
               return (0, _firestore.getDoc)(docRef);
@@ -687,9 +687,9 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
                 _context7.next = 29;
                 break;
               }
-              archiveColRef = (0, _firestore.collection)(_firebase.firestore, "".concat(_classPrivateFieldGet(_collectionPath, this), "_archive"));
+              archiveColRef = (0, _firestore.collection)(_firebaseInit.firestore, "".concat(_classPrivateFieldGet(_collectionPath, this), "_archive"));
               archiveDocRef = (0, _firestore.doc)(archiveColRef, this.docId);
-              batch = (0, _firestore.writeBatch)(_firebase.firestore);
+              batch = (0, _firestore.writeBatch)(_firebaseInit.firestore);
               batch.set(archiveDocRef, docSnapshot.data());
               batch["delete"](docRef);
               _context7.next = 27;
@@ -750,7 +750,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
             case 6:
               _context8.prev = 6;
               archivePath = "".concat(_classPrivateFieldGet(_collectionPath, this), "_archive");
-              archiveColRef = (0, _firestore.collection)(_firebase.firestore, archivePath);
+              archiveColRef = (0, _firestore.collection)(_firebaseInit.firestore, archivePath);
               archiveDocRef = (0, _firestore.doc)(archiveColRef, docId);
               _context8.next = 12;
               return (0, _firestore.getDoc)(archiveDocRef);
@@ -762,9 +762,9 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
               }
               throw new Error((0, _firestoreMessages.getMessage)(sender, "NO_DOCUMENT_TO_RESTORE", archivePath, docId));
             case 15:
-              colRef = (0, _firestore.collection)(_firebase.firestore, _classPrivateFieldGet(_collectionPath, this));
+              colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
               docRef = (0, _firestore.doc)(colRef, docId);
-              batch = (0, _firestore.writeBatch)(_firebase.firestore);
+              batch = (0, _firestore.writeBatch)(_firebaseInit.firestore);
               batch["delete"](archiveDocRef);
               batch.set(docRef, docSnapshot.data());
               _context8.next = 22;
@@ -831,7 +831,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
           console.info((0, _firestoreMessages.getMessage)(sender, "LISTENER_HAS_SET", _classPrivateFieldGet(_collectionPath, this)));
           this.unsubscribe();
         }
-        var colRef = (0, _firestore.collection)(_firebase.firestore, _classPrivateFieldGet(_collectionPath, this));
+        var colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
         var docRef = (0, _firestore.doc)(colRef, docId);
         _classPrivateFieldSet(_listener, this, (0, _firestore.onSnapshot)(docRef, function (docSnapshot) {
           if (docSnapshot.exists()) {
@@ -867,7 +867,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
           console.info((0, _firestoreMessages.getMessage)(sender, "LISTENER_HAS_SET", _classPrivateFieldGet(_collectionPath, this)));
           this.unsubscribe();
         }
-        var colRef = (0, _firestore.collection)(_firebase.firestore, _classPrivateFieldGet(_collectionPath, this));
+        var colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
         var q = _firestore.query.apply(void 0, [colRef].concat(_toConsumableArray(constraints))).withConverter(_assertClassBrand(_FireModel_brand, this, _converter).call(this));
         _classPrivateFieldSet(_listener, this, (0, _firestore.onSnapshot)(q, function (snapshot) {
           snapshot.docChanges().forEach(function (change) {
@@ -925,7 +925,7 @@ function _createWithAutonumber2() {
           /* eslint-disable */
           sender = "FireModel - createWithAutonumber";
           _context9.prev = 1;
-          autonumRef = (0, _firestore.doc)(_firebase.firestore, "Autonumbers/".concat(_classPrivateFieldGet(_collectionPath, this)));
+          autonumRef = (0, _firestore.doc)(_firebaseInit.firestore, "Autonumbers/".concat(_classPrivateFieldGet(_collectionPath, this)));
           _context9.next = 5;
           return transaction.get(autonumRef);
         case 5:
@@ -989,7 +989,7 @@ function _hasChild2() {
             break;
           }
           item = _step.value;
-          colRef = item.type === "collection" ? (0, _firestore.collection)(_firebase.firestore, item.collection) : (0, _firestore.collectionGroup)(_firebase.firestore, item.collection);
+          colRef = item.type === "collection" ? (0, _firestore.collection)(_firebaseInit.firestore, item.collection) : (0, _firestore.collectionGroup)(_firebaseInit.firestore, item.collection);
           whrObj = (0, _firestore.where)(item.field, item.condition, this.docId);
           q = (0, _firestore.query)(colRef, whrObj, (0, _firestore.limit)(1));
           _context10.next = 10;
