@@ -1,9 +1,9 @@
 {
-  "name": "air-firemodel",
+  "name": "air-firebase",
   "version": "0.2.1",
-  "description": "A Firestore model class to manage Firestore collections with CRUD operations, auto-numbering, logical deletion, and more.",
+  "description": "Provide a base class that implements functions for various firebase services and CRUD functions to Firestore.",
   "type": "module",
-  "main": "dist/firestore/FireModel.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "babel src --out-dir dist",
     "test": "jest",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/shisyamo4131/air-firemodel.git"
+    "url": "https://github.com/shisyamo4131/air-firebase.git"
   },
   "author": "shisyamo4131",
   "license": "MIT",
