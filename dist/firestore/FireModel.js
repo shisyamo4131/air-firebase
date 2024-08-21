@@ -1,6 +1,5 @@
 "use strict";
 
-function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
@@ -9,6 +8,7 @@ var _firestore = require("firebase/firestore");
 var _firestoreMessages = require("./firestore-messages.js");
 var _firebaseInit = require("../firebase.init.js");
 function _createForOfIteratorHelper(r, e) { var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (!t) { if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) { t && (r = t); var _n = 0, F = function F() {}; return { s: F, n: function n() { return _n >= r.length ? { done: !0 } : { done: !1, value: r[_n++] }; }, e: function e(r) { throw r; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var o, a = !0, u = !1; return { s: function s() { t = t.call(r); }, n: function n() { var r = t.next(); return a = r.done, r; }, e: function e(r) { u = !0, o = r; }, f: function f() { try { a || null == t["return"] || t["return"](); } finally { if (u) throw o; } } }; }
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
 function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
@@ -44,6 +44,7 @@ function _assertClassBrand(e, t, n) { if ("function" == typeof e ? e === t : e.h
  * - 論理削除のオプションを提供し、削除されたドキュメントをアーカイブコレクションに移動可能
  * - Firestoreのリアルタイムリスナーを使用したドキュメントの監視
  * - 依存するコレクション（hasMany）の管理
+ * - Firestoreの脆弱なクエリを補うため、指定されたプロパティに対するtokenMapを生成します。
  *
  * 使用方法:
  * このクラスは直接使用せず、特定のコレクションに対応するサブクラスを作成して使用します。
@@ -53,9 +54,15 @@ function _assertClassBrand(e, t, n) { if ("function" == typeof e ? e === t : e.h
  * ```javascript
  * class OrderModel extends FireModel {
  *   constructor(data = {}) {
- *     super(data, 'orders', [
- *       { collection: 'orderItems', field: 'orderId', condition: '==', type: 'subcollection' }
- *     ], true);  // `true` は論理削除を有効にするフラグ
+ *     super(
+ *       data,
+ *       'orders',
+ *       [
+ *         { collection: 'orderItems', field: 'orderId', condition: '==', type: 'subcollection' }
+ *       ],
+ *       true // `true` は論理削除を有効にするフラグ,
+ *       tokenFields: ['name']
+ *     );
  *   }
  *
  *   // サブクラスで使用するプロパティはinitializeメソッドで定義します。
@@ -75,6 +82,11 @@ function _assertClassBrand(e, t, n) { if ("function" == typeof e ? e === t : e.h
  * - `hasMany`: 'orderItems'ドキュメントが`orders`ドキュメントに依存していることを表します。
  *   この設定により`orderItems`ドキュメントが存在する`orders`ドキュメントの削除を抑制することができます。
  * - `logicalDelete`: `true`に設定することで、ドキュメントの削除時に論理削除が適用され、ドキュメントはアーカイブされます。
+ * - `tokenFields`: tokenMapとして生成する対象のプロパティを指定します。
+ *
+ * tokenMap:
+ * - Firestoreの脆弱なクエリを補完するための、Ngram検索を行うためのフィールドです。
+ * - Firestoreのデータのkeyに使用することができないため、サロゲートペア文字列は除外されます。
  *
  * 注意:
  * - このクラスは、FirestoreのドキュメントIDや作成日時、更新日時、ユーザーIDなどのメタデータを自動管理します。
@@ -83,10 +95,12 @@ function _assertClassBrand(e, t, n) { if ("function" == typeof e ? e === t : e.h
  * - Firestoreのリアルタイムリスナーを活用することで、ドキュメントの変更をリアルタイムで監視し、自動的にデータモデルに反映します。
  *
  * @author shisyamo4131
- * @version 1.0.0
+ * @version 1.1.0
  * @see https://firebase.google.com/docs/firestore
  *
  * @updates
+ * - version 1.1.0 - 2024-08-22 - tokenMapフィールドを追加
+ *                              - constructorのhasManyについて内容をチェックするコードを追加
  * - version 1.0.0 - 2024-08-19 - 初版完成
  */
 var _collectionPath = /*#__PURE__*/new WeakMap();
@@ -94,6 +108,7 @@ var _hasMany = /*#__PURE__*/new WeakMap();
 var _logicalDelete = /*#__PURE__*/new WeakMap();
 var _listener = /*#__PURE__*/new WeakMap();
 var _items = /*#__PURE__*/new WeakMap();
+var _tokenFields = /*#__PURE__*/new WeakMap();
 var _FireModel_brand = /*#__PURE__*/new WeakSet();
 var FireModel = exports["default"] = /*#__PURE__*/function () {
   /**
@@ -109,13 +124,13 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
   function FireModel() {
     var _item = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     var collectionPath = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
-    var hasMany = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
+    var _hasMany2 = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
     var logicalDelete = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
+    var tokenFields = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : [];
     _classCallCheck(this, FireModel);
     /**
-     * Firestore用のコンバーターを提供します。
-     * ドキュメントデータの保存および読み込み時に使用されます。
-     * @returns {object} - Firestoreの`toFirestore`および`fromFirestore`メソッドを含むコンバーターオブジェクト
+     * コンストラクタに引き渡されたhasManyについて検証します。
+     * @param {Array<Object>} hasMany コンストラクタで受け取ったhasMany
      */
     _classPrivateMethodInitSpec(this, _FireModel_brand);
     /**
@@ -144,21 +159,34 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
      * subscribeDocs関数のリアルタイムリスナーで取得したドキュメントデータ用の配列です。
      */
     _classPrivateFieldInitSpec(this, _items, []);
+    /**
+     * tokenMapに反映させるフィールドのリストです。
+     */
+    _classPrivateFieldInitSpec(this, _tokenFields, []);
     _classPrivateFieldSet(_collectionPath, this, collectionPath);
-    _classPrivateFieldSet(_hasMany, this, hasMany);
+    _assertClassBrand(_FireModel_brand, this, _validateHasMany).call(this, _hasMany2);
+    _classPrivateFieldSet(_hasMany, this, _hasMany2);
     _classPrivateFieldSet(_logicalDelete, this, logicalDelete);
+    _classPrivateFieldSet(_tokenFields, this, tokenFields);
     this.initialize(_item);
+    Object.defineProperties(this, {
+      tokenMap: {
+        enumerable: true,
+        get: _assertClassBrand(_FireModel_brand, this, _generateTokenMap).bind(this),
+        set: _assertClassBrand(_FireModel_brand, this, _setTokenMap).bind(this)
+      }
+    });
   }
-
-  /**
-   * クラスインスタンスを純粋なオブジェクトに変換します。
-   * 継承先のクラスで定義されたプロパティも含めて出力します。
-   * `enumerable: true`のプロパティのみを出力します。
-   * @returns {Object} - Firestoreに保存可能なオブジェクト形式
-   */
   return _createClass(FireModel, [{
     key: "toObject",
-    value: function toObject() {
+    value:
+    /**
+     * クラスインスタンスを純粋なオブジェクトに変換します。
+     * 継承先のクラスで定義されたプロパティも含めて出力します。
+     * `enumerable: true`のプロパティのみを出力します。
+     * @returns {Object} - Firestoreに保存可能なオブジェクト形式
+     */
+    function toObject() {
       var _this = this;
       var obj = {};
 
@@ -220,6 +248,12 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
         }
       });
     }
+
+    /**
+     * Firestore用のコンバーターを提供します。
+     * ドキュメントデータの保存および読み込み時に使用されます。
+     * @returns {object} - Firestoreの`toFirestore`および`fromFirestore`メソッドを含むコンバーターオブジェクト
+     */
   }, {
     key: "beforeCreate",
     value:
@@ -891,8 +925,74 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
     }
   }]);
 }();
-function _converter() {
+function _validateHasMany(hasMany) {
+  if (!Array.isArray(hasMany)) {
+    throw new Error("hasManyプロパティは配列である必要があります。");
+  }
+  hasMany.forEach(function (relation, index) {
+    var requiredKeys = ["collection", "field", "condition", "type"];
+    var allowedKeys = new Set(requiredKeys);
+
+    // 各要素がオブジェクトであることを確認
+    if (_typeof(relation) !== "object" || relation === null) {
+      throw new Error("hasMany\u30D7\u30ED\u30D1\u30C6\u30A3\u306E\u8981\u7D20\u306F\u30AA\u30D6\u30B8\u30A7\u30AF\u30C8\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9: ".concat(index, ", \u5024: ").concat(JSON.stringify(relation)));
+    }
+
+    // 必須のキーがすべて存在することを確認
+    requiredKeys.forEach(function (key) {
+      if (!(key in relation)) {
+        throw new Error("hasMany\u30D7\u30ED\u30D1\u30C6\u30A3\u306E\u8981\u7D20\u306B\u306F".concat(key, "\u30D7\u30ED\u30D1\u30C6\u30A3\u304C\u5FC5\u8981\u3067\u3059\u3002\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9: ").concat(index, ", \u5024: ").concat(JSON.stringify(relation)));
+      }
+    });
+
+    // 余分なキーがないことを確認
+    Object.keys(relation).forEach(function (key) {
+      if (!allowedKeys.has(key)) {
+        throw new Error("hasMany\u30D7\u30ED\u30D1\u30C6\u30A3\u306E\u8981\u7D20\u306B\u7121\u52B9\u306A\u30D7\u30ED\u30D1\u30C6\u30A3".concat(key, "\u304C\u542B\u307E\u308C\u3066\u3044\u307E\u3059\u3002\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9: ").concat(index, ", \u5024: ").concat(JSON.stringify(relation)));
+      }
+    });
+
+    // typeプロパティの値を確認
+    var validTypes = ["collection", "subcollection"];
+    if (!validTypes.includes(relation.type)) {
+      throw new Error("hasMany\u30D7\u30ED\u30D1\u30C6\u30A3\u306Etype\u30D7\u30ED\u30D1\u30C6\u30A3\u306B\u306F'collection'\u307E\u305F\u306F'subcollection'\u306E\u307F\u4F7F\u7528\u3067\u304D\u307E\u3059\u3002\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9: ".concat(index, ", \u5024: ").concat(JSON.stringify(relation)));
+    }
+  });
+}
+/**
+ * tokenMapを生成して返します。
+ * @returns {object} token map
+ */
+function _generateTokenMap() {
   var _this6 = this;
+  if (_classPrivateFieldGet(_tokenFields, this).length) {
+    console.log(this[_classPrivateFieldGet(_tokenFields, this)[0]]);
+  }
+  if (!_classPrivateFieldGet(_tokenFields, this).length) return null;
+  var arr = [];
+  _classPrivateFieldGet(_tokenFields, this).forEach(function (fieldName) {
+    if (fieldName in _this6 && _this6[fieldName]) {
+      var target = _this6[fieldName].replace(/[\uD800-\uDBFF]|[\uDC00-\uDFFF]|~|\*|\[|\]|\s+/g, "");
+      for (var i = 0; i < target.length; i++) {
+        arr.push([target.substring(i, i + 1), true]);
+      }
+      for (var _i = 0; _i < target.length - 1; _i++) {
+        arr.push([target.substring(_i, _i + 2), true]);
+      }
+    }
+  });
+  return Object.fromEntries(arr);
+}
+/**
+ * tokenMapのセッターです。
+ * @param {object} value - The value to set for tokenMap
+ */
+function _setTokenMap(value) {
+  // No-op setter to avoid errors during initialization.
+  // This can be customized if needed to handle specific logic.
+}
+function _converter() {
+  var _this7 = this;
   return {
     /**
      * インスタンスをFirestoreに保存する際の変換メソッドです。
@@ -909,7 +1009,7 @@ function _converter() {
      */
     fromFirestore: function fromFirestore(snapshot) {
       var data = snapshot.data();
-      return new _this6.constructor(data, _classPrivateFieldGet(_collectionPath, _this6), _classPrivateFieldGet(_hasMany, _this6), _classPrivateFieldGet(_logicalDelete, _this6));
+      return new _this7.constructor(data, _classPrivateFieldGet(_collectionPath, _this7), _classPrivateFieldGet(_hasMany, _this7), _classPrivateFieldGet(_logicalDelete, _this7));
     }
   };
 }

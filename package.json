@@ -1,6 +1,6 @@
 {
   "name": "air-firemodel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A Firestore model class to manage Firestore collections with CRUD operations, auto-numbering, logical deletion, and more.",
   "type": "module",
   "main": "dist/firestore/FireModel.js",

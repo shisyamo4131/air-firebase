@@ -28,6 +28,7 @@ import { auth, firestore } from "../firebase.init.js";
  * - 論理削除のオプションを提供し、削除されたドキュメントをアーカイブコレクションに移動可能
  * - Firestoreのリアルタイムリスナーを使用したドキュメントの監視
  * - 依存するコレクション（hasMany）の管理
+ * - Firestoreの脆弱なクエリを補うため、指定されたプロパティに対するtokenMapを生成します。
  *
  * 使用方法:
  * このクラスは直接使用せず、特定のコレクションに対応するサブクラスを作成して使用します。
@@ -37,9 +38,15 @@ import { auth, firestore } from "../firebase.init.js";
  * ```javascript
  * class OrderModel extends FireModel {
  *   constructor(data = {}) {
- *     super(data, 'orders', [
- *       { collection: 'orderItems', field: 'orderId', condition: '==', type: 'subcollection' }
- *     ], true);  // `true` は論理削除を有効にするフラグ
+ *     super(
+ *       data,
+ *       'orders',
+ *       [
+ *         { collection: 'orderItems', field: 'orderId', condition: '==', type: 'subcollection' }
+ *       ],
+ *       true // `true` は論理削除を有効にするフラグ,
+ *       tokenFields: ['name']
+ *     );
  *   }
  *
  *   // サブクラスで使用するプロパティはinitializeメソッドで定義します。
@@ -59,6 +66,11 @@ import { auth, firestore } from "../firebase.init.js";
  * - `hasMany`: 'orderItems'ドキュメントが`orders`ドキュメントに依存していることを表します。
  *   この設定により`orderItems`ドキュメントが存在する`orders`ドキュメントの削除を抑制することができます。
  * - `logicalDelete`: `true`に設定することで、ドキュメントの削除時に論理削除が適用され、ドキュメントはアーカイブされます。
+ * - `tokenFields`: tokenMapとして生成する対象のプロパティを指定します。
+ *
+ * tokenMap:
+ * - Firestoreの脆弱なクエリを補完するための、Ngram検索を行うためのフィールドです。
+ * - Firestoreのデータのkeyに使用することができないため、サロゲートペア文字列は除外されます。
  *
  * 注意:
  * - このクラスは、FirestoreのドキュメントIDや作成日時、更新日時、ユーザーIDなどのメタデータを自動管理します。
@@ -67,10 +79,12 @@ import { auth, firestore } from "../firebase.init.js";
  * - Firestoreのリアルタイムリスナーを活用することで、ドキュメントの変更をリアルタイムで監視し、自動的にデータモデルに反映します。
  *
  * @author shisyamo4131
- * @version 1.0.0
+ * @version 1.1.0
  * @see https://firebase.google.com/docs/firestore
  *
  * @updates
+ * - version 1.1.0 - 2024-08-22 - tokenMapフィールドを追加
+ *                              - constructorのhasManyについて内容をチェックするコードを追加
  * - version 1.0.0 - 2024-08-19 - 初版完成
  */
 export default class FireModel {
@@ -106,6 +120,11 @@ export default class FireModel {
   #items = [];
 
   /**
+   * tokenMapに反映させるフィールドのリストです。
+   */
+  #tokenFields = [];
+
+  /**
    * FireModelクラスのインスタンスを初期化します。
    * このクラスはFirestoreコレクションのCRUD操作をサポートし、
    * 依存関係のあるコレクションの管理や論理削除の処理も可能です。
@@ -119,12 +138,114 @@ export default class FireModel {
     item = {},
     collectionPath = "",
     hasMany = [],
-    logicalDelete = false
+    logicalDelete = false,
+    tokenFields = []
   ) {
     this.#collectionPath = collectionPath;
+    this.#validateHasMany(hasMany);
     this.#hasMany = hasMany;
     this.#logicalDelete = logicalDelete;
+    this.#tokenFields = tokenFields;
     this.initialize(item);
+    Object.defineProperties(this, {
+      tokenMap: {
+        enumerable: true,
+        get: this.#generateTokenMap.bind(this),
+        set: this.#setTokenMap.bind(this),
+      },
+    });
+  }
+
+  /**
+   * コンストラクタに引き渡されたhasManyについて検証します。
+   * @param {Array<Object>} hasMany コンストラクタで受け取ったhasMany
+   */
+  #validateHasMany(hasMany) {
+    if (!Array.isArray(hasMany)) {
+      throw new Error("hasManyプロパティは配列である必要があります。");
+    }
+
+    hasMany.forEach((relation, index) => {
+      const requiredKeys = ["collection", "field", "condition", "type"];
+      const allowedKeys = new Set(requiredKeys);
+
+      // 各要素がオブジェクトであることを確認
+      if (typeof relation !== "object" || relation === null) {
+        throw new Error(
+          `hasManyプロパティの要素はオブジェクトである必要があります。インデックス: ${index}, 値: ${JSON.stringify(
+            relation
+          )}`
+        );
+      }
+
+      // 必須のキーがすべて存在することを確認
+      requiredKeys.forEach((key) => {
+        if (!(key in relation)) {
+          throw new Error(
+            `hasManyプロパティの要素には${key}プロパティが必要です。インデックス: ${index}, 値: ${JSON.stringify(
+              relation
+            )}`
+          );
+        }
+      });
+
+      // 余分なキーがないことを確認
+      Object.keys(relation).forEach((key) => {
+        if (!allowedKeys.has(key)) {
+          throw new Error(
+            `hasManyプロパティの要素に無効なプロパティ${key}が含まれています。インデックス: ${index}, 値: ${JSON.stringify(
+              relation
+            )}`
+          );
+        }
+      });
+
+      // typeプロパティの値を確認
+      const validTypes = ["collection", "subcollection"];
+      if (!validTypes.includes(relation.type)) {
+        throw new Error(
+          `hasManyプロパティのtypeプロパティには'collection'または'subcollection'のみ使用できます。インデックス: ${index}, 値: ${JSON.stringify(
+            relation
+          )}`
+        );
+      }
+    });
+  }
+
+  /**
+   * tokenMapを生成して返します。
+   * @returns {object} token map
+   */
+  #generateTokenMap() {
+    if (this.#tokenFields.length) {
+      console.log(this[this.#tokenFields[0]]);
+    }
+    if (!this.#tokenFields.length) return null;
+    const arr = [];
+    this.#tokenFields.forEach((fieldName) => {
+      if (fieldName in this && this[fieldName]) {
+        const target = this[fieldName].replace(
+          /[\uD800-\uDBFF]|[\uDC00-\uDFFF]|~|\*|\[|\]|\s+/g,
+          ""
+        );
+        for (let i = 0; i < target.length; i++) {
+          arr.push([target.substring(i, i + 1), true]);
+        }
+        for (let i = 0; i < target.length - 1; i++) {
+          arr.push([target.substring(i, i + 2), true]);
+        }
+      }
+    });
+    return Object.fromEntries(arr);
+  }
+
+  /**
+   * tokenMapのセッターです。
+   * @param {object} value - The value to set for tokenMap
+   */
+  #setTokenMap(value) {
+    // No-op setter to avoid errors during initialization.
+    // This can be customized if needed to handle specific logic.
   }
 
   /**
