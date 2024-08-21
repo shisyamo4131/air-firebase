@@ -217,9 +217,6 @@ export default class FireModel {
    * @returns {object} token map
    */
   #generateTokenMap() {
-    if (this.#tokenFields.length) {
-      console.log(this[this.#tokenFields[0]]);
-    }
     if (!this.#tokenFields.length) return null;
     const arr = [];
     this.#tokenFields.forEach((fieldName) => {

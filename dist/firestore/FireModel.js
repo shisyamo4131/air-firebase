@@ -965,9 +965,6 @@ function _validateHasMany(hasMany) {
  */
 function _generateTokenMap() {
   var _this6 = this;
-  if (_classPrivateFieldGet(_tokenFields, this).length) {
-    console.log(this[_classPrivateFieldGet(_tokenFields, this)[0]]);
-  }
   if (!_classPrivateFieldGet(_tokenFields, this).length) return null;
   var arr = [];
   _classPrivateFieldGet(_tokenFields, this).forEach(function (fieldName) {
