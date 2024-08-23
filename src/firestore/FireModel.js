@@ -79,11 +79,13 @@ import { auth, firestore } from "../firebase.init.js";
  * - Firestoreのリアルタイムリスナーを活用することで、ドキュメントの変更をリアルタイムで監視し、自動的にデータモデルに反映します。
  *
  * @author shisyamo4131
- * @version 1.1.0
+ * @version 1.3.0
  * @see https://firebase.google.com/docs/firestore
- *
  * @updates
- * - version 1.1.0 - 2024-08-22 - tokenMapフィールドを追加
+ * - version 1.3.0 - 2024-08-23 - deleteAll()を実装
+ * - version 1.2.0 - 2024-08-22 - converterをプライベートからパブリックに変更
+ *                              - fromFirestoreをオーバーライド可能な関数として実装
+ * - version 1.1.0 - 2024-08-21 - tokenMapフィールドを追加
  *                              - constructorのhasManyについて内容をチェックするコードを追加
  * - version 1.0.0 - 2024-08-19 - 初版完成
  */
@@ -246,31 +248,6 @@ export default class FireModel {
   }
 
   /**
-   * クラスインスタンスを純粋なオブジェクトに変換します。
-   * 継承先のクラスで定義されたプロパティも含めて出力します。
-   * `enumerable: true`のプロパティのみを出力します。
-   * @returns {Object} - Firestoreに保存可能なオブジェクト形式
-   */
-  toObject() {
-    const obj = {};
-
-    // プロトタイプチェーンをたどってプロパティを収集
-    let currentObj = this;
-    while (currentObj !== null) {
-      Object.entries(Object.getOwnPropertyDescriptors(currentObj)).forEach(
-        ([key, descriptor]) => {
-          if (descriptor.enumerable) {
-            obj[key] = this[key];
-          }
-        }
-      );
-      currentObj = Object.getPrototypeOf(currentObj);
-    }
-
-    return obj;
-  }
-
-  /**
    * データモデルを初期化するためのメソッドです。
    * コンストラクタから呼び出されるほか、独自に呼び出すことで
    * データモデルを初期化することができます。
@@ -313,7 +290,7 @@ export default class FireModel {
    * ドキュメントデータの保存および読み込み時に使用されます。
    * @returns {object} - Firestoreの`toFirestore`および`fromFirestore`メソッドを含むコンバーターオブジェクト
    */
-  #converter() {
+  converter() {
     return {
       /**
        * インスタンスをFirestoreに保存する際の変換メソッドです。
@@ -327,18 +304,50 @@ export default class FireModel {
        * @param {Object} snapshot - Firestoreから取得したドキュメントスナップショット
        * @returns {Object} - クラスインスタンス
        */
-      fromFirestore: (snapshot) => {
-        const data = snapshot.data();
-        return new this.constructor(
-          data,
-          this.#collectionPath,
-          this.#hasMany,
-          this.#logicalDelete
-        );
-      },
+      fromFirestore: (snapshot) => this.fromFirestore(snapshot),
     };
   }
 
+  /**
+   * クラスインスタンスを純粋なオブジェクトに変換します。
+   * 継承先のクラスで定義されたプロパティも含めて出力します。
+   * `enumerable: true`のプロパティのみを出力します。
+   * @returns {Object} - Firestoreに保存可能なオブジェクト形式
+   */
+  toObject() {
+    const obj = {};
+
+    // プロトタイプチェーンをたどってプロパティを収集
+    let currentObj = this;
+    while (currentObj !== null) {
+      Object.entries(Object.getOwnPropertyDescriptors(currentObj)).forEach(
+        ([key, descriptor]) => {
+          if (descriptor.enumerable) {
+            obj[key] = this[key];
+          }
+        }
+      );
+      currentObj = Object.getPrototypeOf(currentObj);
+    }
+
+    return obj;
+  }
+
+  /**
+   * Firestoreから読み込んだデータをクラスインスタンスに変換するメソッドです。
+   * サブクラスでオーバーライドすることができます。
+   * @param {Object} snapshot - Firestoreから取得したドキュメントスナップショット
+   * @returns {Object} - クラスインスタンス
+   */
+  fromFirestore(snapshot) {
+    const data = snapshot.data();
+    return new this.constructor(
+      data,
+      this.#collectionPath,
+      this.#hasMany,
+      this.#logicalDelete
+    );
+  }
   /**
    * ドキュメント作成前に実行されるメソッドです。
    * コレクション単位で必要な処理がある場合にオーバーライドして使用します。
@@ -422,8 +431,8 @@ export default class FireModel {
       this.uid = auth?.currentUser?.uid || "unknown";
       const colRef = collection(firestore, this.#collectionPath);
       const docRef = docId
-        ? doc(colRef, docId).withConverter(this.#converter())
-        : doc(colRef).withConverter(this.#converter());
+        ? doc(colRef, docId).withConverter(this.converter())
+        : doc(colRef).withConverter(this.converter());
       this.docId = docRef.id;
       await this.beforeCreate();
       if (useAutonumber) {
@@ -541,7 +550,7 @@ export default class FireModel {
     );
     try {
       const colRef = collection(firestore, this.#collectionPath);
-      const docRef = doc(colRef, docId).withConverter(this.#converter());
+      const docRef = doc(colRef, docId).withConverter(this.converter());
       const docSnapshot = await getDoc(docRef);
       if (!docSnapshot.exists()) {
         console.warn(getMessage(sender, "FETCH_DOC_NO_DOCUMENT", docId));
@@ -568,7 +577,7 @@ export default class FireModel {
     console.info(getMessage(sender, "FETCH_DOCS_CALLED", this.#collectionPath));
     try {
       const colRef = collection(firestore, this.#collectionPath);
-      const q = query(colRef, ...constraints).withConverter(this.#converter());
+      const q = query(colRef, ...constraints).withConverter(this.converter());
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map((doc) => doc.data());
     } catch (err) {
@@ -702,6 +711,53 @@ export default class FireModel {
   }
 
   /**
+   * コレクション内のドキュメントをすべて削除します。
+   * - 大量のドキュメントが存在する場合の負荷を分散するため、一度に処理するドキュメント数を制限することができます。
+   * - 一度に処理するドキュメント数の既定値は500件です。
+   * - 同時に、削除処理ごとの待機時間をミリ秒で設定することが可能です。
+   * - 待機時間の既定値は500ミリ秒です。
+   * @param {number} batchSize 一度の処理するドキュメントの最大数
+   * @param {number} pauseDuration 処理を待機する時間（ミリ秒）
+   * @returns {Promise<void>} - すべての処理が完了すると解決されるPromise
+   */
+  async deleteAll(batchSize = 500, pauseDuration = 500) {
+    const sender = "FireModel - deleteAll";
+    console.info(getMessage(sender, "DELETE_ALL_CALLED", this.#collectionPath));
+    // 引数のバリデーション
+    if (typeof batchSize !== "number" || batchSize <= 0) {
+      throw new Error(getMessage(sender, "DELETE_ALL_INVALID_BATCH_SIZE"));
+    }
+    if (typeof pauseDuration !== "number" || pauseDuration < 0) {
+      throw new Error(getMessage(sender, "DELETE_ALL_INVALID_PAUSE_DURATION"));
+    }
+
+    const colRef = collection(firestore, this.#collectionPath);
+    let snapshot;
+
+    try {
+      do {
+        snapshot = await getDocs(query(colRef, limit(batchSize)));
+        if (snapshot.empty) break;
+
+        const batch = writeBatch(firestore);
+        snapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+
+        // 処理を分散するために指定した時間だけ待機する
+        if (pauseDuration > 0) {
+          await new Promise((resolve) => setTimeout(resolve, pauseDuration));
+        }
+      } while (!snapshot.empty);
+    } catch (err) {
+      console.error(`[${sender}] ${err.message}`);
+      throw err;
+    }
+  }
+
+  /**
    * 削除されたドキュメントをアーカイブコレクションから元のコレクションに復元します。
    * @param {string} docId - 復元するドキュメントのID
    * @returns {Promise<DocumentReference>} - 復元されたドキュメントのリファレンス
@@ -826,7 +882,7 @@ export default class FireModel {
         this.unsubscribe();
       }
       const colRef = collection(firestore, this.#collectionPath);
-      const q = query(colRef, ...constraints).withConverter(this.#converter());
+      const q = query(colRef, ...constraints).withConverter(this.converter());
       this.#listener = onSnapshot(q, (snapshot) => {
         snapshot.docChanges().forEach((change) => {
           const item = change.doc.data();

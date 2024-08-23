@@ -1,6 +1,6 @@
 {
   "name": "air-firebase",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Provide a base class that implements functions for various firebase services and CRUD functions to Firestore.",
   "type": "module",
   "main": "dist/index.js",

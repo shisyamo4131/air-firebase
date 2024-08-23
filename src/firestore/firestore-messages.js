@@ -5,6 +5,7 @@
  * @version 1.0.0
  *
  * @updates
+ * - version 1.1.0 - 2024-08-23 - deleteAll()のメッセージを追加
  * - version 1.0.0 - 2024-08-18 - 初版作成
  */
 const messages = {
@@ -15,6 +16,10 @@ const messages = {
     "create()が呼び出されました。ドキュメントIDは指定されていません。",
   CREATE_DOC_SUCCESS:
     "%sコレクションにドキュメントが正常に作成されました。ドキュメントIDは%sです。",
+  DELETE_ALL_CALLED: "%sコレクションに対してdeleteAll()が呼び出されました。",
+  DELETE_ALL_INVALID_BATCH_SIZE: "batchSize は正の数で指定してください。",
+  DELETE_ALL_INVALID_PAUSE_DURATION:
+    "pauseDuration は 0 以上の数で指定してください。",
   DELETE_CALLED: "delete()が呼び出されました。ドキュメントIDは%sです。",
   DELETE_DOC_SUCCESS:
     "%sコレクションからドキュメントが正常に削除されました。ドキュメントIDは%sです。",
