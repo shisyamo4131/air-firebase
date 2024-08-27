@@ -88,6 +88,11 @@ function _assertClassBrand(e, t, n) { if ("function" == typeof e ? e === t : e.h
  * - Firestoreの脆弱なクエリを補完するための、Ngram検索を行うためのフィールドです。
  * - Firestoreのデータのkeyに使用することができないため、サロゲートペア文字列は除外されます。
  *
+ * classProps:
+ * - このクラスはbeforeCreate、beforeUpdateで`classProps`に定義されたプロパティの入力チェックを行います。
+ * - `classProps`はクラスで使用するプロパティを以下の形式で定義したものです。
+ *    docId: { type: String, default: '', required: false, requiredByClass: false }
+ *
  * 注意:
  * - このクラスは、FirestoreのドキュメントIDや作成日時、更新日時、ユーザーIDなどのメタデータを自動管理します。
  * - コレクション間の依存関係（hasMany）は、このクラスを通じて管理され、削除時の整合性を保証します。
@@ -95,10 +100,14 @@ function _assertClassBrand(e, t, n) { if ("function" == typeof e ? e === t : e.h
  * - Firestoreのリアルタイムリスナーを活用することで、ドキュメントの変更をリアルタイムで監視し、自動的にデータモデルに反映します。
  *
  * @author shisyamo4131
- * @version 1.3.0
+ * @version 1.4.0
  * @see https://firebase.google.com/docs/firestore
  * @updates
+ * - version 1.4.0 - 2024-08-26 - validatePropertiesを実装し、beforeCreate、beforeUpdateで入力チェックを行うように修正
+ *                              - サブクラスでのプロパティ初期化処理をinitializeメソッドにて実装
+ *                              - tokenMapに`configurable`を設定。
  * - version 1.3.0 - 2024-08-23 - deleteAll()を実装
+ *                              - fetch()が結果に応じて`Boolean`を返すように修正
  * - version 1.2.0 - 2024-08-22 - converterをプライベートからパブリックに変更
  *                              - fromFirestoreをオーバーライド可能な関数として実装
  * - version 1.1.0 - 2024-08-21 - tokenMapフィールドを追加
@@ -111,6 +120,7 @@ var _logicalDelete = /*#__PURE__*/new WeakMap();
 var _listener = /*#__PURE__*/new WeakMap();
 var _items = /*#__PURE__*/new WeakMap();
 var _tokenFields = /*#__PURE__*/new WeakMap();
+var _classProps = /*#__PURE__*/new WeakMap();
 var _FireModel_brand = /*#__PURE__*/new WeakSet();
 var FireModel = exports["default"] = /*#__PURE__*/function () {
   /**
@@ -122,6 +132,8 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
    * @param {string} collectionPath - Firestoreコレクションのパス
    * @param {Array<Object>} hasMany - 依存するコレクションの情報を格納した配列
    * @param {boolean} logicalDelete - 論理削除を行うかどうかを指定するフラグ
+   * @param {Array<Object>} tokenFields - tokenMap作成対象のプロパティ名の配列
+   * @param {Object} classProps - クラスに用意するプロパティの定義を表したオブジェクト
    */
   function FireModel() {
     var _item = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
@@ -129,11 +141,18 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
     var _hasMany2 = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
     var logicalDelete = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
     var tokenFields = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : [];
+    var classProps = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : {};
     _classCallCheck(this, FireModel);
-    /**
+    /****************************************************************************
      * コンストラクタに引き渡されたhasManyについて検証します。
+     * - hasManyプロパティは配列である必要があります。
+     * - 各要素はオブジェクトであり、必要なプロパティを持っていることを確認します。
+     * - 必須キーは "collection", "field", "condition", "type" です。
+     * - "type" プロパティには "collection" または "subcollection" のみを指定できます。
+     *
      * @param {Array<Object>} hasMany コンストラクタで受け取ったhasMany
-     */
+     * @throws {Error} バリデーションに失敗した場合にエラーをスローします。
+     ****************************************************************************/
     _classPrivateMethodInitSpec(this, _FireModel_brand);
     /**
      * ドキュメントのコレクションパスです。
@@ -165,36 +184,95 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
      * tokenMapに反映させるフィールドのリストです。
      */
     _classPrivateFieldInitSpec(this, _tokenFields, []);
+    _classPrivateFieldInitSpec(this, _classProps, {});
     _classPrivateFieldSet(_collectionPath, this, collectionPath);
     _assertClassBrand(_FireModel_brand, this, _validateHasMany).call(this, _hasMany2);
     _classPrivateFieldSet(_hasMany, this, _hasMany2);
     _classPrivateFieldSet(_logicalDelete, this, logicalDelete);
     _classPrivateFieldSet(_tokenFields, this, tokenFields);
+    _classPrivateFieldSet(_classProps, this, classProps);
     this.initialize(_item);
     Object.defineProperties(this, {
       tokenMap: {
         enumerable: true,
+        configurable: true,
         get: _assertClassBrand(_FireModel_brand, this, _generateTokenMap).bind(this),
         set: _assertClassBrand(_FireModel_brand, this, _setTokenMap).bind(this)
       }
     });
   }
   return _createClass(FireModel, [{
+    key: "validateProperties",
+    value:
+    /****************************************************************************
+     * validateProperties
+     *
+     * `classProps`によって定義されたプロパティについて、インスタンスのプロパティ値の
+     * バリデーションを行います。このメソッドは、必須入力およびカスタム
+     * バリデーションロジックに従ったチェックを実行します。
+     *
+     * - `requiredByClass`がtrueの場合、そのプロパティは必須と見なされます。
+     * - プロパティが`undefined`、`null`、または空文字列(`''`)である場合、
+     *   必須チェックに失敗し、エラーがスローされます。
+     * - `validator`関数が指定されている場合、その関数を使用してプロパティ値の
+     *   カスタムバリデーションが行われます。バリデーションに失敗した場合、
+     *   エラーがスローされます。
+     *
+     * @returns {void}
+     * @throws {Error} 必須プロパティが未設定であるか、バリデーションに失敗した場合
+     ****************************************************************************/
+    function validateProperties() {
+      var _this = this;
+      Object.keys(_classPrivateFieldGet(_classProps, this)).forEach(function (key) {
+        var propConfig = _classPrivateFieldGet(_classProps, _this)[key];
+
+        // 必須チェック
+        if (propConfig.requiredByClass && (_this[key] === undefined || _this[key] === null || _this[key] === "")) {
+          throw new Error("".concat(key, "\u306F\u5FC5\u9808\u3067\u3059\u3002"));
+        }
+
+        // バリデーションチェック
+        if (propConfig.validator && !propConfig.validator(_this[key])) {
+          throw new Error("".concat(key, "\u306E\u5024\u304C\u7121\u52B9\u3067\u3059: ").concat(_this[key]));
+        }
+      });
+    }
+
+    /****************************************************************************
+     * tokenMapを生成して返します。
+     * - 指定されたフィールドの値からトークンを生成し、トークンマップを作成します。
+     * - フィールドが存在しないか、値が空の場合は無視されます。
+     * - サロゲートペア、特殊文字、および空白文字を除去してトークンを生成します。
+     *
+     * @returns {Object|null} 生成されたtokenMapを返します。対象フィールドがない場合はnullを返します。
+     ****************************************************************************/
+  }, {
     key: "initialize",
     value:
-    /**
+    /****************************************************************************
      * データモデルを初期化するためのメソッドです。
-     * コンストラクタから呼び出されるほか、独自に呼び出すことで
-     * データモデルを初期化することができます。
-     * @param {object} item - 初期化するデータモデルのプロパティを含むオブジェクト
+     * - コンストラクタから呼び出されるほか、独自に呼び出すことで
+     *   データモデルを初期化することができます。
+     * - プロパティ `createAt` と `updateAt` は、Dateオブジェクトに変換されます。
+     * - 他のプロパティはオブジェクトのディープコピーとして初期化されます。
+     *
+     * @param {Object} item - 初期化するデータモデルのプロパティを含むオブジェクト
      * @returns {void}
-     */
+     ****************************************************************************/
     function initialize() {
-      var _item$createAt,
-        _item$updateAt,
-        _this = this;
+      var _this2 = this,
+        _item$createAt,
+        _item$updateAt;
       var item = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+      /**
+       * classPropsに定義されているプロパティを初期化
+       */
+      Object.keys(_classPrivateFieldGet(_classProps, this)).forEach(function (key) {
+        var propDefault = _classPrivateFieldGet(_classProps, _this2)[key]["default"];
+        _this2[key] = typeof propDefault === "function" ? propDefault() : propDefault;
+      });
       this.docId = (item === null || item === void 0 ? void 0 : item.docId) || "";
+      this.uid = (item === null || item === void 0 ? void 0 : item.uid) || "";
 
       /**
        * createAt、updateAtは型をチェックし、Dateオブジェクトに変換して初期化
@@ -215,23 +293,23 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       } else {
         this.updateAt = null;
       }
-      this.uid = (item === null || item === void 0 ? void 0 : item.uid) || "";
       Object.keys(item).forEach(function (key) {
-        if (key in _this && key !== "createAt" && key !== "updateAt") {
-          _this[key] = JSON.parse(JSON.stringify(item[key]));
+        if (key in _this2 && key !== "createAt" && key !== "updateAt") {
+          _this2[key] = JSON.parse(JSON.stringify(item[key]));
         }
       });
     }
 
-    /**
+    /****************************************************************************
      * Firestore用のコンバーターを提供します。
-     * ドキュメントデータの保存および読み込み時に使用されます。
-     * @returns {object} - Firestoreの`toFirestore`および`fromFirestore`メソッドを含むコンバーターオブジェクト
-     */
+     * - ドキュメントデータの保存および読み込み時に使用されます。
+     *
+     * @returns {Object} - Firestoreの`toFirestore`および`fromFirestore`メソッドを含むコンバーターオブジェクト
+     ****************************************************************************/
   }, {
     key: "converter",
     value: function converter() {
-      var _this2 = this;
+      var _this3 = this;
       return {
         /**
          * インスタンスをFirestoreに保存する際の変換メソッドです。
@@ -247,21 +325,22 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
          * @returns {Object} - クラスインスタンス
          */
         fromFirestore: function fromFirestore(snapshot) {
-          return _this2.fromFirestore(snapshot);
+          return _this3.fromFirestore(snapshot);
         }
       };
     }
 
-    /**
+    /****************************************************************************
      * クラスインスタンスを純粋なオブジェクトに変換します。
-     * 継承先のクラスで定義されたプロパティも含めて出力します。
-     * `enumerable: true`のプロパティのみを出力します。
+     * - 継承先のクラスで定義されたプロパティも含めて出力します。
+     * - `enumerable: true`のプロパティのみを出力します。
+     *
      * @returns {Object} - Firestoreに保存可能なオブジェクト形式
-     */
+     ****************************************************************************/
   }, {
     key: "toObject",
     value: function toObject() {
-      var _this3 = this;
+      var _this4 = this;
       var obj = {};
 
       // プロトタイプチェーンをたどってプロパティを収集
@@ -272,7 +351,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
             key = _ref2[0],
             descriptor = _ref2[1];
           if (descriptor.enumerable) {
-            obj[key] = _this3[key];
+            obj[key] = _this4[key];
           }
         });
         currentObj = Object.getPrototypeOf(currentObj);
@@ -280,91 +359,111 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       return obj;
     }
 
-    /**
+    /****************************************************************************
      * Firestoreから読み込んだデータをクラスインスタンスに変換するメソッドです。
-     * サブクラスでオーバーライドすることができます。
+     * - サブクラスでオーバーライドすることができます。
+     *
      * @param {Object} snapshot - Firestoreから取得したドキュメントスナップショット
      * @returns {Object} - クラスインスタンス
-     */
+     ****************************************************************************/
   }, {
     key: "fromFirestore",
     value: function fromFirestore(snapshot) {
       var data = snapshot.data();
       return new this.constructor(data, _classPrivateFieldGet(_collectionPath, this), _classPrivateFieldGet(_hasMany, this), _classPrivateFieldGet(_logicalDelete, this));
     }
-    /**
+
+    /****************************************************************************
      * ドキュメント作成前に実行されるメソッドです。
-     * コレクション単位で必要な処理がある場合にオーバーライドして使用します。
-     * サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
+     * - `classProps`で定義されたプロパティについて、`validateProperties()`でチェックを行います。
+     * - コレクション単位で必要な処理がある場合にオーバーライドして処理を追加してください。
+     * - サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
      * @returns {Promise<void>} - デフォルトでは、解決済みのPromiseを返します。
-     */
+     ****************************************************************************/
   }, {
     key: "beforeCreate",
     value: function beforeCreate() {
-      return Promise.resolve();
+      var _this5 = this;
+      return new Promise(function (resolve, reject) {
+        try {
+          _this5.validateProperties();
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      });
     }
 
-    /**
+    /****************************************************************************
      * ドキュメント作成後に実行されるメソッドです。
      * コレクション単位で必要な処理がある場合にオーバーライドして使用します。
      * サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
      * @returns {Promise<void>} - デフォルトでは、解決済みのPromiseを返します。
-     */
+     ****************************************************************************/
   }, {
     key: "afterCreate",
     value: function afterCreate() {
       return Promise.resolve();
     }
 
-    /**
+    /****************************************************************************
      * ドキュメント更新前に実行されるメソッドです。
-     * コレクション単位で必要な処理がある場合にオーバーライドして使用します。
-     * サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
+     * - `classProps`で定義されたプロパティについて、`validateProperties()`でチェックを行います。
+     * - コレクション単位で必要な処理がある場合にオーバーライドして処理を追加してください。
+     * - サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
      * @returns {Promise<void>} - デフォルトでは、解決済みのPromiseを返します。
-     */
+     ****************************************************************************/
   }, {
     key: "beforeUpdate",
     value: function beforeUpdate() {
-      return Promise.resolve();
+      var _this6 = this;
+      return new Promise(function (resolve, reject) {
+        try {
+          _this6.validateProperties();
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      });
     }
 
-    /**
+    /****************************************************************************
      * ドキュメント更新後に実行されるメソッドです。
      * コレクション単位で必要な処理がある場合にオーバーライドして使用します。
      * サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
      * @returns {Promise<void>} - デフォルトでは、解決済みのPromiseを返します。
-     */
+     ****************************************************************************/
   }, {
     key: "afterUpdate",
     value: function afterUpdate() {
       return Promise.resolve();
     }
 
-    /**
+    /****************************************************************************
      * ドキュメント削除前に実行されるメソッドです。
      * コレクション単位で必要な処理がある場合にオーバーライドして使用します。
      * サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
      * @returns {Promise<void>} - デフォルトでは、解決済みのPromiseを返します。
-     */
+     ****************************************************************************/
   }, {
     key: "beforeDelete",
     value: function beforeDelete() {
       return Promise.resolve();
     }
 
-    /**
+    /****************************************************************************
      * ドキュメント削除後に実行されるメソッドです。
      * コレクション単位で必要な処理がある場合にオーバーライドして使用します。
      * サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
      * @returns {Promise<void>} - デフォルトでは、解決済みのPromiseを返します。
-     */
+     ****************************************************************************/
   }, {
     key: "afterDelete",
     value: function afterDelete() {
       return Promise.resolve();
     }
 
-    /**
+    /****************************************************************************
      * ドキュメントを書き込みます。
      * ‐ docIdを指定することで、ドキュメントIDを指定した書き込みを行うことが可能です。
      * - useAutonumberをtrueにすると自動採番を行います。
@@ -372,12 +471,12 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
      * @param {string|null} docId - 指定されたドキュメントID（省略可能）
      * @param {boolean} useAutonumber - 自動採番を行うかどうかのフラグ（省略可能）
      * @returns {Promise<DocumentReference>} - 作成されたドキュメントのリファレンス
-     */
+     ****************************************************************************/
   }, {
     key: "create",
     value: (function () {
       var _create = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2() {
-        var _this4 = this;
+        var _this7 = this;
         var _ref3,
           _ref3$docId,
           docId,
@@ -420,9 +519,9 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
                     while (1) switch (_context.prev = _context.next) {
                       case 0:
                         _context.next = 2;
-                        return _assertClassBrand(_FireModel_brand, _this4, _createWithAutonumber).call(_this4, transaction, _this4);
+                        return _assertClassBrand(_FireModel_brand, _this7, _createWithAutonumber).call(_this7, transaction, _this7);
                       case 2:
-                        transaction.set(docRef, _this4);
+                        transaction.set(docRef, _this7);
                       case 3:
                       case "end":
                         return _context.stop();
@@ -461,22 +560,24 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       }
       return create;
     }()
-    /**
+    /****************************************************************************
      * 自動採番を利用してドキュメントを作成します。
      * @param {Object} transaction Firestoreのトランザクションオブジェクト
      * @param {Object} item ドキュメントとして登録するデータオブジェクト
      * @returns {Promise<void>} - ドキュメントが存在しない場合は警告を出力し、存在する場合はプロパティにデータをセットします。
-     */
+     ****************************************************************************/
     )
   }, {
     key: "fetch",
     value: (
-    /**
-     * 指定されたドキュメントIDに該当するドキュメントを取得してプロパティに該当するデータをセットします。
+    /****************************************************************************
+     * 指定されたドキュメントIDに該当するドキュメントを取得してプロパティにデータをセットします。
      * - 当該クラスのプロパティにデータをセットするため、`withConverter`を使っていません。
+     * - ドキュメントの読み込みに成功すれば`true`を、そうでなければ`false`を返します。
      * @param {string} docId - 取得するドキュメントのID
-     * @returns
-     */
+     * @returns {Promise<boolean>} ドキュメントが存在した場合は`true`、存在しない場合は`false`を返します。
+     * @throws {Error} ドキュメントIDが指定されていない場合、またはドキュメントの取得に失敗した場合
+     ****************************************************************************/
     function () {
       var _fetch = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee3() {
         var docId,
@@ -489,7 +590,6 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
           while (1) switch (_context3.prev = _context3.next) {
             case 0:
               docId = _args3.length > 0 && _args3[0] !== undefined ? _args3[0] : null;
-              /* eslint-disable */
               sender = "FireModel - fetch";
               if (docId) {
                 _context3.next = 4;
@@ -497,6 +597,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
               }
               throw new Error((0, _firestoreMessages.getMessage)(sender, "FETCH_CALLED_NO_DOCID"));
             case 4:
+              // eslint-disable-next-line no-console
               console.info((0, _firestoreMessages.getMessage)(sender, "FETCH_CALLED", _classPrivateFieldGet(_collectionPath, this), docId));
               _context3.prev = 5;
               colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
@@ -509,36 +610,38 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
                 _context3.next = 14;
                 break;
               }
+              // eslint-disable-next-line no-console
               console.warn((0, _firestoreMessages.getMessage)(sender, "FETCH_NO_DOCUMENT", docId));
-              return _context3.abrupt("return");
+              return _context3.abrupt("return", false);
             case 14:
               this.initialize(docSnapshot.data());
+              // eslint-disable-next-line no-console
               console.info((0, _firestoreMessages.getMessage)(sender, "FETCH_SUCCESS"));
-              _context3.next = 22;
-              break;
-            case 18:
-              _context3.prev = 18;
+              return _context3.abrupt("return", true);
+            case 19:
+              _context3.prev = 19;
               _context3.t0 = _context3["catch"](5);
+              // eslint-disable-next-line no-console
               console.error("[".concat(sender, "] ").concat(_context3.t0.message));
-              throw _context3.t0;
-            case 22:
+              throw new Error("Document fetch failed: ".concat(_context3.t0.message));
+            case 23:
             case "end":
               return _context3.stop();
           }
-        }, _callee3, this, [[5, 18]]);
+        }, _callee3, this, [[5, 19]]);
       }));
       function fetch() {
         return _fetch.apply(this, arguments);
       }
       return fetch;
     }()
-    /**
+    /****************************************************************************
      * 指定されたドキュメントIDに該当するドキュメントを取得して返します。
      * ‐ `fetch`と異なり、取得したドキュメントデータをインスタンス化された当該クラスのオブジェクトとして返します。
      * - 既にインスタンス化されたクラスオブジェクトはそのままに、新たなインスタンスが必要な場合に使用します。
      * @param {string} docId - 取得するドキュメントのID
      * @returns {Promise<Object|null>} - 取得されたドキュメントデータが返されます。ドキュメントが存在しない場合は`null`が返されます。
-     */
+     ****************************************************************************/
     )
   }, {
     key: "fetchDoc",
@@ -595,12 +698,12 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       }
       return fetchDoc;
     }()
-    /**
+    /****************************************************************************
      * Firestoreコレクションから条件に一致するドキュメントを取得し、そのデータを返します。
      * - 返り値の配列に格納されるのは取得したドキュメントデータで初期化された、インスタンス化された当該クラスのオブジェクトです。
      * @param {Array} constraints - Firestoreクエリの条件（whereなど）を格納した配列
      * @returns {Promise<Array<Object>>} - 取得したドキュメントのデータで初期化された、インスタンス化された当該クラスのオブジェクトの配列
-     */
+     ****************************************************************************/
     )
   }, {
     key: "fetchDocs",
@@ -645,10 +748,10 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       }
       return fetchDocs;
     }()
-    /**
+    /****************************************************************************
      * 現在プロパティにセットされている値で、ドキュメントを更新します。
      * @returns {Promise<DocumentReference>} 更新したドキュメントへの参照
-     */
+     ****************************************************************************/
     )
   }, {
     key: "update",
@@ -699,20 +802,20 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       }
       return update;
     }()
-    /**
+    /****************************************************************************
      * `hasMany`プロパティにセットされた条件に基づいて、当該クラスに読み込まれているドキュメントデータに
      * 依存している子ドキュメントが存在しているかどうかを返します。
      * @returns {Promise<object|boolean>} - 子ドキュメントが存在する場合は`hasMany`の該当項目を返し、存在しない場合は`false`を返します。
-     */
+     ****************************************************************************/
     )
   }, {
     key: "delete",
     value: (
-    /**
+    /****************************************************************************
      * 現在のドキュメントIDに該当するドキュメントを削除します。
      * - `logicalDelete`が指定されている場合、削除されたドキュメントはarchiveコレクションに移動されます。
      * @returns {Promise<void>} - 削除が完了すると解決されるPromise
-     */
+     ****************************************************************************/
     function () {
       var _delete2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee7() {
         var sender, hasChild, colRef, docRef, docSnapshot, archiveColRef, archiveDocRef, batch;
@@ -794,7 +897,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       }
       return _delete;
     }()
-    /**
+    /****************************************************************************
      * コレクション内のドキュメントをすべて削除します。
      * - 大量のドキュメントが存在する場合の負荷を分散するため、一度に処理するドキュメント数を制限することができます。
      * - 一度に処理するドキュメント数の既定値は500件です。
@@ -803,7 +906,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
      * @param {number} batchSize 一度の処理するドキュメントの最大数
      * @param {number} pauseDuration 処理を待機する時間（ミリ秒）
      * @returns {Promise<void>} - すべての処理が完了すると解決されるPromise
-     */
+     ****************************************************************************/
     )
   }, {
     key: "deleteAll",
@@ -906,12 +1009,12 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       }
       return deleteAll;
     }()
-    /**
+    /****************************************************************************
      * 削除されたドキュメントをアーカイブコレクションから元のコレクションに復元します。
      * @param {string} docId - 復元するドキュメントのID
      * @returns {Promise<DocumentReference>} - 復元されたドキュメントのリファレンス
      * @throws {Error} - ドキュメントIDが指定されていない場合や、復元するドキュメントが存在しない場合にエラーをスローします
-     */
+     ****************************************************************************/
     )
   }, {
     key: "restore",
@@ -971,11 +1074,11 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       }
       return restore;
     }()
-    /**
+    /****************************************************************************
      * Firestoreのリアルタイムリスナーを解除します。
      * 現在のリスナーが存在する場合、そのリスナーを解除します。
      * @returns {void}
-     */
+     ****************************************************************************/
     )
   }, {
     key: "unsubscribe",
@@ -992,17 +1095,17 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       /* eslint-enable */
     }
 
-    /**
+    /****************************************************************************
      * Firestoreのドキュメントに対するリアルタイムリスナーを設定します。
      * 既にリスナーが設定されている場合、そのリスナーを解除してから新しいリスナーを設定します。
      * @param {string} docId - リアルタイムリスナーを設定するドキュメントのID
      * @returns {void}
      * @throws {Error} - ドキュメントIDが指定されていない場合にエラーをスローします
-     */
+     ****************************************************************************/
   }, {
     key: "subscribe",
     value: function subscribe(docId) {
-      var _this5 = this;
+      var _this8 = this;
       /* eslint-disable */
       var sender = "FireModel - subscribe";
       if (!docId) {
@@ -1018,7 +1121,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
         var docRef = (0, _firestore.doc)(colRef, docId);
         _classPrivateFieldSet(_listener, this, (0, _firestore.onSnapshot)(docRef, function (docSnapshot) {
           if (docSnapshot.exists()) {
-            _this5.initialize(docSnapshot.data()); // ドキュメントデータを初期化
+            _this8.initialize(docSnapshot.data()); // ドキュメントデータを初期化
           } else {
             console.warn((0, _firestoreMessages.getMessage)(sender, "SUBSCRIBE_NO_DOCUMENT", docId));
           }
@@ -1031,16 +1134,16 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       /* eslint-enable */
     }
 
-    /**
+    /****************************************************************************
      * Firestoreコレクションに対するリアルタイムリスナーを設定し、ドキュメントの変化を監視します。
      * クエリ条件に一致するドキュメントのリスナーを設定し、結果は`#items`に格納されます。
      * @param {Array} constraints - Firestoreクエリの条件（whereなど）を格納した配列
      * @returns {Array<Object>} - リアルタイムで監視しているドキュメントのデータが格納された配列
-     */
+     ****************************************************************************/
   }, {
     key: "subscribeDocs",
     value: function subscribeDocs() {
-      var _this6 = this;
+      var _this9 = this;
       var constraints = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
       /* eslint-disable */
       var sender = "FireModel - subscribeDocs";
@@ -1055,13 +1158,13 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
         _classPrivateFieldSet(_listener, this, (0, _firestore.onSnapshot)(q, function (snapshot) {
           snapshot.docChanges().forEach(function (change) {
             var item = change.doc.data();
-            var index = _classPrivateFieldGet(_items, _this6).findIndex(function (_ref5) {
+            var index = _classPrivateFieldGet(_items, _this9).findIndex(function (_ref5) {
               var docId = _ref5.docId;
               return docId === item.docId;
             });
-            if (change.type === "added") _classPrivateFieldGet(_items, _this6).push(item);
-            if (change.type === "modified") _classPrivateFieldGet(_items, _this6).splice(index, 1, item);
-            if (change.type === "removed") _classPrivateFieldGet(_items, _this6).splice(index, 1);
+            if (change.type === "added") _classPrivateFieldGet(_items, _this9).push(item);
+            if (change.type === "modified") _classPrivateFieldGet(_items, _this9).splice(index, 1, item);
+            if (change.type === "removed") _classPrivateFieldGet(_items, _this9).splice(index, 1);
           });
         }));
         console.info((0, _firestoreMessages.getMessage)(sender, "SUBSCRIBE_DOCS_SUCCESS", _classPrivateFieldGet(_collectionPath, this)));
@@ -1108,17 +1211,13 @@ function _validateHasMany(hasMany) {
     }
   });
 }
-/**
- * tokenMapを生成して返します。
- * @returns {object} token map
- */
 function _generateTokenMap() {
-  var _this7 = this;
+  var _this10 = this;
   if (!_classPrivateFieldGet(_tokenFields, this).length) return null;
   var arr = [];
   _classPrivateFieldGet(_tokenFields, this).forEach(function (fieldName) {
-    if (fieldName in _this7 && _this7[fieldName]) {
-      var target = _this7[fieldName].replace(/[\uD800-\uDBFF]|[\uDC00-\uDFFF]|~|\*|\[|\]|\s+/g, "");
+    if (fieldName in _this10 && _this10[fieldName]) {
+      var target = _this10[fieldName].replace(/[\uD800-\uDBFF]|[\uDC00-\uDFFF]|~|\*|\[|\]|\s+/g, "");
       for (var i = 0; i < target.length; i++) {
         arr.push([target.substring(i, i + 1), true]);
       }
@@ -1129,10 +1228,13 @@ function _generateTokenMap() {
   });
   return Object.fromEntries(arr);
 }
-/**
+/****************************************************************************
  * tokenMapのセッターです。
- * @param {object} value - The value to set for tokenMap
- */
+ * - 初期化時のエラーを避けるためのNo-op（何もしない）セッターです。
+ * - 必要に応じて、特定のロジックを実装するためにカスタマイズできます。
+ *
+ * @param {Object} value - セットするtokenMapの値
+ ****************************************************************************/
 function _setTokenMap(value) {
   // No-op setter to avoid errors during initialization.
   // This can be customized if needed to handle specific logic.

@@ -72,6 +72,11 @@ import { auth, firestore } from "../firebase.init.js";
  * - Firestoreの脆弱なクエリを補完するための、Ngram検索を行うためのフィールドです。
  * - Firestoreのデータのkeyに使用することができないため、サロゲートペア文字列は除外されます。
  *
+ * classProps:
+ * - このクラスはbeforeCreate、beforeUpdateで`classProps`に定義されたプロパティの入力チェックを行います。
+ * - `classProps`はクラスで使用するプロパティを以下の形式で定義したものです。
+ *    docId: { type: String, default: '', required: false, requiredByClass: false }
+ *
  * 注意:
  * - このクラスは、FirestoreのドキュメントIDや作成日時、更新日時、ユーザーIDなどのメタデータを自動管理します。
  * - コレクション間の依存関係（hasMany）は、このクラスを通じて管理され、削除時の整合性を保証します。
@@ -79,10 +84,14 @@ import { auth, firestore } from "../firebase.init.js";
  * - Firestoreのリアルタイムリスナーを活用することで、ドキュメントの変更をリアルタイムで監視し、自動的にデータモデルに反映します。
  *
  * @author shisyamo4131
- * @version 1.3.0
+ * @version 1.4.0
  * @see https://firebase.google.com/docs/firestore
  * @updates
+ * - version 1.4.0 - 2024-08-26 - validatePropertiesを実装し、beforeCreate、beforeUpdateで入力チェックを行うように修正
+ *                              - サブクラスでのプロパティ初期化処理をinitializeメソッドにて実装
+ *                              - tokenMapに`configurable`を設定。
  * - version 1.3.0 - 2024-08-23 - deleteAll()を実装
+ *                              - fetch()が結果に応じて`Boolean`を返すように修正
  * - version 1.2.0 - 2024-08-22 - converterをプライベートからパブリックに変更
  *                              - fromFirestoreをオーバーライド可能な関数として実装
  * - version 1.1.0 - 2024-08-21 - tokenMapフィールドを追加
@@ -126,6 +135,8 @@ export default class FireModel {
    */
   #tokenFields = [];
 
+  #classProps = {};
+
   /**
    * FireModelクラスのインスタンスを初期化します。
    * このクラスはFirestoreコレクションのCRUD操作をサポートし、
@@ -135,33 +146,44 @@ export default class FireModel {
    * @param {string} collectionPath - Firestoreコレクションのパス
    * @param {Array<Object>} hasMany - 依存するコレクションの情報を格納した配列
    * @param {boolean} logicalDelete - 論理削除を行うかどうかを指定するフラグ
+   * @param {Array<Object>} tokenFields - tokenMap作成対象のプロパティ名の配列
+   * @param {Object} classProps - クラスに用意するプロパティの定義を表したオブジェクト
    */
   constructor(
     item = {},
     collectionPath = "",
     hasMany = [],
     logicalDelete = false,
-    tokenFields = []
+    tokenFields = [],
+    classProps = {}
   ) {
     this.#collectionPath = collectionPath;
     this.#validateHasMany(hasMany);
     this.#hasMany = hasMany;
     this.#logicalDelete = logicalDelete;
     this.#tokenFields = tokenFields;
+    this.#classProps = classProps;
     this.initialize(item);
     Object.defineProperties(this, {
       tokenMap: {
         enumerable: true,
+        configurable: true,
         get: this.#generateTokenMap.bind(this),
         set: this.#setTokenMap.bind(this),
       },
     });
   }
 
-  /**
+  /****************************************************************************
    * コンストラクタに引き渡されたhasManyについて検証します。
+   * - hasManyプロパティは配列である必要があります。
+   * - 各要素はオブジェクトであり、必要なプロパティを持っていることを確認します。
+   * - 必須キーは "collection", "field", "condition", "type" です。
+   * - "type" プロパティには "collection" または "subcollection" のみを指定できます。
+   *
    * @param {Array<Object>} hasMany コンストラクタで受け取ったhasMany
-   */
+   * @throws {Error} バリデーションに失敗した場合にエラーをスローします。
+   ****************************************************************************/
   #validateHasMany(hasMany) {
     if (!Array.isArray(hasMany)) {
       throw new Error("hasManyプロパティは配列である必要があります。");
@@ -214,10 +236,50 @@ export default class FireModel {
     });
   }
 
-  /**
+  /****************************************************************************
+   * validateProperties
+   *
+   * `classProps`によって定義されたプロパティについて、インスタンスのプロパティ値の
+   * バリデーションを行います。このメソッドは、必須入力およびカスタム
+   * バリデーションロジックに従ったチェックを実行します。
+   *
+   * - `requiredByClass`がtrueの場合、そのプロパティは必須と見なされます。
+   * - プロパティが`undefined`、`null`、または空文字列(`''`)である場合、
+   *   必須チェックに失敗し、エラーがスローされます。
+   * - `validator`関数が指定されている場合、その関数を使用してプロパティ値の
+   *   カスタムバリデーションが行われます。バリデーションに失敗した場合、
+   *   エラーがスローされます。
+   *
+   * @returns {void}
+   * @throws {Error} 必須プロパティが未設定であるか、バリデーションに失敗した場合
+   ****************************************************************************/
+  validateProperties() {
+    Object.keys(this.#classProps).forEach((key) => {
+      const propConfig = this.#classProps[key];
+
+      // 必須チェック
+      if (
+        propConfig.requiredByClass &&
+        (this[key] === undefined || this[key] === null || this[key] === "")
+      ) {
+        throw new Error(`${key}は必須です。`);
+      }
+
+      // バリデーションチェック
+      if (propConfig.validator && !propConfig.validator(this[key])) {
+        throw new Error(`${key}の値が無効です: ${this[key]}`);
+      }
+    });
+  }
+
+  /****************************************************************************
    * tokenMapを生成して返します。
-   * @returns {object} token map
-   */
+   * - 指定されたフィールドの値からトークンを生成し、トークンマップを作成します。
+   * - フィールドが存在しないか、値が空の場合は無視されます。
+   * - サロゲートペア、特殊文字、および空白文字を除去してトークンを生成します。
+   *
+   * @returns {Object|null} 生成されたtokenMapを返します。対象フィールドがない場合はnullを返します。
+   ****************************************************************************/
   #generateTokenMap() {
     if (!this.#tokenFields.length) return null;
     const arr = [];
@@ -238,24 +300,40 @@ export default class FireModel {
     return Object.fromEntries(arr);
   }
 
-  /**
+  /****************************************************************************
    * tokenMapのセッターです。
-   * @param {object} value - The value to set for tokenMap
-   */
+   * - 初期化時のエラーを避けるためのNo-op（何もしない）セッターです。
+   * - 必要に応じて、特定のロジックを実装するためにカスタマイズできます。
+   *
+   * @param {Object} value - セットするtokenMapの値
+   ****************************************************************************/
   #setTokenMap(value) {
     // No-op setter to avoid errors during initialization.
     // This can be customized if needed to handle specific logic.
   }
 
-  /**
+  /****************************************************************************
    * データモデルを初期化するためのメソッドです。
-   * コンストラクタから呼び出されるほか、独自に呼び出すことで
-   * データモデルを初期化することができます。
-   * @param {object} item - 初期化するデータモデルのプロパティを含むオブジェクト
+   * - コンストラクタから呼び出されるほか、独自に呼び出すことで
+   *   データモデルを初期化することができます。
+   * - プロパティ `createAt` と `updateAt` は、Dateオブジェクトに変換されます。
+   * - 他のプロパティはオブジェクトのディープコピーとして初期化されます。
+   *
+   * @param {Object} item - 初期化するデータモデルのプロパティを含むオブジェクト
    * @returns {void}
-   */
+   ****************************************************************************/
   initialize(item = {}) {
+    /**
+     * classPropsに定義されているプロパティを初期化
+     */
+    Object.keys(this.#classProps).forEach((key) => {
+      const propDefault = this.#classProps[key].default;
+      this[key] =
+        typeof propDefault === "function" ? propDefault() : propDefault;
+    });
+
     this.docId = item?.docId || "";
+    this.uid = item?.uid || "";
 
     /**
      * createAt、updateAtは型をチェックし、Dateオブジェクトに変換して初期化
@@ -277,7 +355,6 @@ export default class FireModel {
       this.updateAt = null;
     }
 
-    this.uid = item?.uid || "";
     Object.keys(item).forEach((key) => {
       if (key in this && key !== "createAt" && key !== "updateAt") {
         this[key] = JSON.parse(JSON.stringify(item[key]));
@@ -285,11 +362,12 @@ export default class FireModel {
     });
   }
 
-  /**
+  /****************************************************************************
    * Firestore用のコンバーターを提供します。
-   * ドキュメントデータの保存および読み込み時に使用されます。
-   * @returns {object} - Firestoreの`toFirestore`および`fromFirestore`メソッドを含むコンバーターオブジェクト
-   */
+   * - ドキュメントデータの保存および読み込み時に使用されます。
+   *
+   * @returns {Object} - Firestoreの`toFirestore`および`fromFirestore`メソッドを含むコンバーターオブジェクト
+   ****************************************************************************/
   converter() {
     return {
       /**
@@ -308,12 +386,13 @@ export default class FireModel {
     };
   }
 
-  /**
+  /****************************************************************************
    * クラスインスタンスを純粋なオブジェクトに変換します。
-   * 継承先のクラスで定義されたプロパティも含めて出力します。
-   * `enumerable: true`のプロパティのみを出力します。
+   * - 継承先のクラスで定義されたプロパティも含めて出力します。
+   * - `enumerable: true`のプロパティのみを出力します。
+   *
    * @returns {Object} - Firestoreに保存可能なオブジェクト形式
-   */
+   ****************************************************************************/
   toObject() {
     const obj = {};
 
@@ -333,12 +412,13 @@ export default class FireModel {
     return obj;
   }
 
-  /**
+  /****************************************************************************
    * Firestoreから読み込んだデータをクラスインスタンスに変換するメソッドです。
-   * サブクラスでオーバーライドすることができます。
+   * - サブクラスでオーバーライドすることができます。
+   *
    * @param {Object} snapshot - Firestoreから取得したドキュメントスナップショット
    * @returns {Object} - クラスインスタンス
-   */
+   ****************************************************************************/
   fromFirestore(snapshot) {
     const data = snapshot.data();
     return new this.constructor(
@@ -348,67 +428,84 @@ export default class FireModel {
       this.#logicalDelete
     );
   }
-  /**
+
+  /****************************************************************************
    * ドキュメント作成前に実行されるメソッドです。
-   * コレクション単位で必要な処理がある場合にオーバーライドして使用します。
-   * サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
+   * - `classProps`で定義されたプロパティについて、`validateProperties()`でチェックを行います。
+   * - コレクション単位で必要な処理がある場合にオーバーライドして処理を追加してください。
+   * - サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
    * @returns {Promise<void>} - デフォルトでは、解決済みのPromiseを返します。
-   */
+   ****************************************************************************/
   beforeCreate() {
-    return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      try {
+        this.validateProperties();
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
-  /**
+  /****************************************************************************
    * ドキュメント作成後に実行されるメソッドです。
    * コレクション単位で必要な処理がある場合にオーバーライドして使用します。
    * サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
    * @returns {Promise<void>} - デフォルトでは、解決済みのPromiseを返します。
-   */
+   ****************************************************************************/
   afterCreate() {
     return Promise.resolve();
   }
 
-  /**
+  /****************************************************************************
    * ドキュメント更新前に実行されるメソッドです。
-   * コレクション単位で必要な処理がある場合にオーバーライドして使用します。
-   * サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
+   * - `classProps`で定義されたプロパティについて、`validateProperties()`でチェックを行います。
+   * - コレクション単位で必要な処理がある場合にオーバーライドして処理を追加してください。
+   * - サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
    * @returns {Promise<void>} - デフォルトでは、解決済みのPromiseを返します。
-   */
+   ****************************************************************************/
   beforeUpdate() {
-    return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      try {
+        this.validateProperties();
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
-  /**
+  /****************************************************************************
    * ドキュメント更新後に実行されるメソッドです。
    * コレクション単位で必要な処理がある場合にオーバーライドして使用します。
    * サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
    * @returns {Promise<void>} - デフォルトでは、解決済みのPromiseを返します。
-   */
+   ****************************************************************************/
   afterUpdate() {
     return Promise.resolve();
   }
 
-  /**
+  /****************************************************************************
    * ドキュメント削除前に実行されるメソッドです。
    * コレクション単位で必要な処理がある場合にオーバーライドして使用します。
    * サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
    * @returns {Promise<void>} - デフォルトでは、解決済みのPromiseを返します。
-   */
+   ****************************************************************************/
   beforeDelete() {
     return Promise.resolve();
   }
 
-  /**
+  /****************************************************************************
    * ドキュメント削除後に実行されるメソッドです。
    * コレクション単位で必要な処理がある場合にオーバーライドして使用します。
    * サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
    * @returns {Promise<void>} - デフォルトでは、解決済みのPromiseを返します。
-   */
+   ****************************************************************************/
   afterDelete() {
     return Promise.resolve();
   }
 
-  /**
+  /****************************************************************************
    * ドキュメントを書き込みます。
    * ‐ docIdを指定することで、ドキュメントIDを指定した書き込みを行うことが可能です。
    * - useAutonumberをtrueにすると自動採番を行います。
@@ -416,7 +513,7 @@ export default class FireModel {
    * @param {string|null} docId - 指定されたドキュメントID（省略可能）
    * @param {boolean} useAutonumber - 自動採番を行うかどうかのフラグ（省略可能）
    * @returns {Promise<DocumentReference>} - 作成されたドキュメントのリファレンス
-   */
+   ****************************************************************************/
   async create({ docId = null, useAutonumber = false } = {}) {
     /* eslint-disable */
     const sender = "FireModel - create";
@@ -460,12 +557,12 @@ export default class FireModel {
     /* eslint-enable */
   }
 
-  /**
+  /****************************************************************************
    * 自動採番を利用してドキュメントを作成します。
    * @param {Object} transaction Firestoreのトランザクションオブジェクト
    * @param {Object} item ドキュメントとして登録するデータオブジェクト
    * @returns {Promise<void>} - ドキュメントが存在しない場合は警告を出力し、存在する場合はプロパティにデータをセットします。
-   */
+   ****************************************************************************/
   async #createWithAutonumber(transaction, item) {
     /* eslint-disable */
     const sender = "FireModel - createWithAutonumber";
@@ -500,45 +597,52 @@ export default class FireModel {
     /* eslint-enable */
   }
 
-  /**
-   * 指定されたドキュメントIDに該当するドキュメントを取得してプロパティに該当するデータをセットします。
+  /****************************************************************************
+   * 指定されたドキュメントIDに該当するドキュメントを取得してプロパティにデータをセットします。
    * - 当該クラスのプロパティにデータをセットするため、`withConverter`を使っていません。
+   * - ドキュメントの読み込みに成功すれば`true`を、そうでなければ`false`を返します。
    * @param {string} docId - 取得するドキュメントのID
-   * @returns
-   */
+   * @returns {Promise<boolean>} ドキュメントが存在した場合は`true`、存在しない場合は`false`を返します。
+   * @throws {Error} ドキュメントIDが指定されていない場合、またはドキュメントの取得に失敗した場合
+   ****************************************************************************/
   async fetch(docId = null) {
-    /* eslint-disable */
     const sender = "FireModel - fetch";
     if (!docId) {
       throw new Error(getMessage(sender, "FETCH_CALLED_NO_DOCID"));
     }
+
+    // eslint-disable-next-line no-console
     console.info(
       getMessage(sender, "FETCH_CALLED", this.#collectionPath, docId)
     );
+
     try {
       const colRef = collection(firestore, this.#collectionPath);
       const docRef = doc(colRef, docId);
       const docSnapshot = await getDoc(docRef);
       if (!docSnapshot.exists()) {
+        // eslint-disable-next-line no-console
         console.warn(getMessage(sender, "FETCH_NO_DOCUMENT", docId));
-        return;
+        return false;
       }
       this.initialize(docSnapshot.data());
+      // eslint-disable-next-line no-console
       console.info(getMessage(sender, "FETCH_SUCCESS"));
+      return true;
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error(`[${sender}] ${err.message}`);
-      throw err;
+      throw new Error(`Document fetch failed: ${err.message}`);
     }
-    /* eslint-enable */
   }
 
-  /**
+  /****************************************************************************
    * 指定されたドキュメントIDに該当するドキュメントを取得して返します。
    * ‐ `fetch`と異なり、取得したドキュメントデータをインスタンス化された当該クラスのオブジェクトとして返します。
    * - 既にインスタンス化されたクラスオブジェクトはそのままに、新たなインスタンスが必要な場合に使用します。
    * @param {string} docId - 取得するドキュメントのID
    * @returns {Promise<Object|null>} - 取得されたドキュメントデータが返されます。ドキュメントが存在しない場合は`null`が返されます。
-   */
+   ****************************************************************************/
   async fetchDoc(docId = null) {
     /* eslint-disable */
     const sender = "FireModel - fetchDoc";
@@ -565,12 +669,12 @@ export default class FireModel {
     /* eslint-enable */
   }
 
-  /**
+  /****************************************************************************
    * Firestoreコレクションから条件に一致するドキュメントを取得し、そのデータを返します。
    * - 返り値の配列に格納されるのは取得したドキュメントデータで初期化された、インスタンス化された当該クラスのオブジェクトです。
    * @param {Array} constraints - Firestoreクエリの条件（whereなど）を格納した配列
    * @returns {Promise<Array<Object>>} - 取得したドキュメントのデータで初期化された、インスタンス化された当該クラスのオブジェクトの配列
-   */
+   ****************************************************************************/
   async fetchDocs(constraints = []) {
     /* eslint-disable */
     const sender = "FireModel - fetchDocs";
@@ -587,10 +691,10 @@ export default class FireModel {
     /* eslint-enable */
   }
 
-  /**
+  /****************************************************************************
    * 現在プロパティにセットされている値で、ドキュメントを更新します。
    * @returns {Promise<DocumentReference>} 更新したドキュメントへの参照
-   */
+   ****************************************************************************/
   async update() {
     /* eslint-disable */
     const sender = "FireModel - update";
@@ -622,11 +726,11 @@ export default class FireModel {
     /* eslint-enable */
   }
 
-  /**
+  /****************************************************************************
    * `hasMany`プロパティにセットされた条件に基づいて、当該クラスに読み込まれているドキュメントデータに
    * 依存している子ドキュメントが存在しているかどうかを返します。
    * @returns {Promise<object|boolean>} - 子ドキュメントが存在する場合は`hasMany`の該当項目を返し、存在しない場合は`false`を返します。
-   */
+   ****************************************************************************/
   async #hasChild() {
     for (const item of this.#hasMany) {
       const colRef =
@@ -644,11 +748,11 @@ export default class FireModel {
     return false;
   }
 
-  /**
+  /****************************************************************************
    * 現在のドキュメントIDに該当するドキュメントを削除します。
    * - `logicalDelete`が指定されている場合、削除されたドキュメントはarchiveコレクションに移動されます。
    * @returns {Promise<void>} - 削除が完了すると解決されるPromise
-   */
+   ****************************************************************************/
   async delete() {
     /* eslint-disable */
     const sender = "FireModel - delete";
@@ -710,7 +814,7 @@ export default class FireModel {
     /* eslint-enable */
   }
 
-  /**
+  /****************************************************************************
    * コレクション内のドキュメントをすべて削除します。
    * - 大量のドキュメントが存在する場合の負荷を分散するため、一度に処理するドキュメント数を制限することができます。
    * - 一度に処理するドキュメント数の既定値は500件です。
@@ -719,7 +823,7 @@ export default class FireModel {
    * @param {number} batchSize 一度の処理するドキュメントの最大数
    * @param {number} pauseDuration 処理を待機する時間（ミリ秒）
    * @returns {Promise<void>} - すべての処理が完了すると解決されるPromise
-   */
+   ****************************************************************************/
   async deleteAll(batchSize = 500, pauseDuration = 500) {
     const sender = "FireModel - deleteAll";
     console.info(getMessage(sender, "DELETE_ALL_CALLED", this.#collectionPath));
@@ -757,12 +861,12 @@ export default class FireModel {
     }
   }
 
-  /**
+  /****************************************************************************
    * 削除されたドキュメントをアーカイブコレクションから元のコレクションに復元します。
    * @param {string} docId - 復元するドキュメントのID
    * @returns {Promise<DocumentReference>} - 復元されたドキュメントのリファレンス
    * @throws {Error} - ドキュメントIDが指定されていない場合や、復元するドキュメントが存在しない場合にエラーをスローします
-   */
+   ****************************************************************************/
   async restore(docId) {
     /* eslint-disable */
     const sender = "FireModel - restore";
@@ -798,11 +902,11 @@ export default class FireModel {
     /* eslint-enable */
   }
 
-  /**
+  /****************************************************************************
    * Firestoreのリアルタイムリスナーを解除します。
    * 現在のリスナーが存在する場合、そのリスナーを解除します。
    * @returns {void}
-   */
+   ****************************************************************************/
   unsubscribe() {
     /* eslint-disable */
     const sender = "FireModel - unsubscribe";
@@ -818,13 +922,13 @@ export default class FireModel {
     /* eslint-enable */
   }
 
-  /**
+  /****************************************************************************
    * Firestoreのドキュメントに対するリアルタイムリスナーを設定します。
    * 既にリスナーが設定されている場合、そのリスナーを解除してから新しいリスナーを設定します。
    * @param {string} docId - リアルタイムリスナーを設定するドキュメントのID
    * @returns {void}
    * @throws {Error} - ドキュメントIDが指定されていない場合にエラーをスローします
-   */
+   ****************************************************************************/
   subscribe(docId) {
     /* eslint-disable */
     const sender = "FireModel - subscribe";
@@ -862,12 +966,12 @@ export default class FireModel {
     /* eslint-enable */
   }
 
-  /**
+  /****************************************************************************
    * Firestoreコレクションに対するリアルタイムリスナーを設定し、ドキュメントの変化を監視します。
    * クエリ条件に一致するドキュメントのリスナーを設定し、結果は`#items`に格納されます。
    * @param {Array} constraints - Firestoreクエリの条件（whereなど）を格納した配列
    * @returns {Array<Object>} - リアルタイムで監視しているドキュメントのデータが格納された配列
-   */
+   ****************************************************************************/
   subscribeDocs(constraints = []) {
     /* eslint-disable */
     const sender = "FireModel - subscribeDocs";
