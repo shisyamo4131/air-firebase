@@ -7,6 +7,7 @@ import {
   getDocs,
   limit,
   onSnapshot,
+  orderBy,
   query,
   runTransaction,
   setDoc,
@@ -76,6 +77,11 @@ import { auth, firestore } from "../firebase.init.js";
  * - このクラスはbeforeCreate、beforeUpdateで`classProps`に定義されたプロパティの入力チェックを行います。
  * - `classProps`はクラスで使用するプロパティを以下の形式で定義したものです。
  *    docId: { type: String, default: '', required: false, requiredByClass: false }
+ * - 自動採番で値がセットされるプロパティには`requiredByClass`をtrueにしないでください。
+ *   validatePropertiesは自動採番が行われる前に実行されるため、エラーになります。
+ *
+ * createメソッド:
+ * ‐ `transaction`引数を与えると、トランザクション処理を行います。
  *
  * 注意:
  * - このクラスは、FirestoreのドキュメントIDや作成日時、更新日時、ユーザーIDなどのメタデータを自動管理します。
@@ -84,9 +90,14 @@ import { auth, firestore } from "../firebase.init.js";
  * - Firestoreのリアルタイムリスナーを活用することで、ドキュメントの変更をリアルタイムで監視し、自動的にデータモデルに反映します。
  *
  * @author shisyamo4131
- * @version 1.4.0
+ * @version 1.7.0
  * @see https://firebase.google.com/docs/firestore
  * @updates
+ * - version 1.7.0 - 2024-09-11 - fetchDocsをfetchDocsOldとし、fetchDocsを再実装。受け付ける引数の形式を変更し、Ngram検索も可能に。
+ *                              - subscribeDocsをsubscribeDocsOldとし、subscribeDocsを再実装。受け付ける引数の形式を変更し、Ngram検索も可能に。
+ *                              - 各メソッドで出力されるコンソールに使用しているsenderがクラス名を動的に生成するように修正。
+ * - version 1.6.0 - 2024-09-04 - cloneメソッドを追加
+ * - version 1.5.0 - 2024-08-27 - create、update、deleteがtransactionを引数として受け取ることができるように改善。
  * - version 1.4.0 - 2024-08-26 - validatePropertiesを実装し、beforeCreate、beforeUpdateで入力チェックを行うように修正
  *                              - サブクラスでのプロパティ初期化処理をinitializeメソッドにて実装
  *                              - tokenMapに`configurable`を設定。
@@ -175,6 +186,15 @@ export default class FireModel {
   }
 
   /****************************************************************************
+   * 当該インスタンスを複製したインスタンスを返します。
+   * - vueコンポーネントにおいてインスタンスを親に返す場合など、参照渡しを回避するのに使用します。
+   * @returns {this.constructor} - 複製された新しいインスタンス
+   ****************************************************************************/
+  clone() {
+    return Object.assign(new this.constructor(), structuredClone(this));
+  }
+
+  /****************************************************************************
    * コンストラクタに引き渡されたhasManyについて検証します。
    * - hasManyプロパティは配列である必要があります。
    * - 各要素はオブジェクトであり、必要なプロパティを持っていることを確認します。
@@ -243,7 +263,7 @@ export default class FireModel {
    * バリデーションを行います。このメソッドは、必須入力およびカスタム
    * バリデーションロジックに従ったチェックを実行します。
    *
-   * - `requiredByClass`がtrueの場合、そのプロパティは必須と見なされます。
+   * - `required`がtrueの場合、そのプロパティは必須と見なされます。
    * - プロパティが`undefined`、`null`、または空文字列(`''`)である場合、
    *   必須チェックに失敗し、エラーがスローされます。
    * - `validator`関数が指定されている場合、その関数を使用してプロパティ値の
@@ -256,10 +276,9 @@ export default class FireModel {
   validateProperties() {
     Object.keys(this.#classProps).forEach((key) => {
       const propConfig = this.#classProps[key];
-
       // 必須チェック
       if (
-        propConfig.requiredByClass &&
+        propConfig.required &&
         (this[key] === undefined || this[key] === null || this[key] === "")
       ) {
         throw new Error(`${key}は必須です。`);
@@ -509,20 +528,33 @@ export default class FireModel {
    * ドキュメントを書き込みます。
    * ‐ docIdを指定することで、ドキュメントIDを指定した書き込みを行うことが可能です。
    * - useAutonumberをtrueにすると自動採番を行います。
-   * - useAutonumberの既定値はfalseです。自動採番を行うコレクションの場合、このメソッドをオーバーライドし、useAutonumberの既定値をtrueにすることをお勧めします。
+   * - useAutonumberの既定値はfalseです。
+   * - 自動採番を行うコレクションの場合、このメソッドをオーバーライドし、useAutonumberの既定値をtrueにすることをお勧めします。
+   * - transactionを引数に渡すことでトランザクション処理を行うことが可能です。
    * @param {string|null} docId - 指定されたドキュメントID（省略可能）
    * @param {boolean} useAutonumber - 自動採番を行うかどうかのフラグ（省略可能）
+   * @param {object|null} transaction - Firestoreトランザクションオブジェクト（省略可能）
    * @returns {Promise<DocumentReference>} - 作成されたドキュメントのリファレンス
+   * @throws {Error} - ドキュメントの作成中にエラーが発生した場合にスローされます
    ****************************************************************************/
-  async create({ docId = null, useAutonumber = false } = {}) {
-    /* eslint-disable */
-    const sender = "FireModel - create";
+  async create({
+    docId = null,
+    useAutonumber = false,
+    transaction = null,
+  } = {}) {
+    const sender = `${this.constructor.name} - create`;
+
+    // メッセージ出力
     if (docId) {
+      // eslint-disable-next-line no-console
       console.info(getMessage(sender, "CREATE_CALLED", docId));
     } else {
+      // eslint-disable-next-line no-console
       console.info(getMessage(sender, "CREATE_CALLED_NO_DOCID"));
     }
+
     try {
+      // ドキュメント作成準備
       this.createAt = new Date();
       this.updateAt = new Date();
       this.uid = auth?.currentUser?.uid || "unknown";
@@ -532,15 +564,28 @@ export default class FireModel {
         : doc(colRef).withConverter(this.converter());
       this.docId = docRef.id;
       await this.beforeCreate();
+
+      // ドキュメント作成処理
       if (useAutonumber) {
-        await runTransaction(firestore, async (transaction) => {
+        if (transaction) {
           await this.#createWithAutonumber(transaction, this);
           transaction.set(docRef, this);
-        });
+        } else {
+          await runTransaction(firestore, async (newTransaction) => {
+            await this.#createWithAutonumber(newTransaction, this);
+            newTransaction.set(docRef, this);
+          });
+        }
       } else {
-        await setDoc(docRef, this);
+        await (transaction
+          ? transaction.set(docRef, this)
+          : setDoc(docRef, this));
       }
+
+      // ドキュメント作成後の処理
       await this.afterCreate();
+
+      // 成功メッセージ
       console.info(
         getMessage(
           sender,
@@ -551,10 +596,11 @@ export default class FireModel {
       );
       return docRef;
     } catch (err) {
-      console.error(`[${sender}] ${err.message}`);
-      throw err;
+      const errorMsg = `Error in ${sender}: ${err.message}`;
+      // eslint-disable-next-line no-console
+      console.error(errorMsg);
+      throw new Error(errorMsg);
     }
-    /* eslint-enable */
   }
 
   /****************************************************************************
@@ -565,7 +611,7 @@ export default class FireModel {
    ****************************************************************************/
   async #createWithAutonumber(transaction, item) {
     /* eslint-disable */
-    const sender = "FireModel - createWithAutonumber";
+    const sender = `${this.constructor.name} - createWithAutonumber`;
     try {
       const autonumRef = doc(firestore, `Autonumbers/${this.#collectionPath}`);
       const autonumDoc = await transaction.get(autonumRef);
@@ -606,7 +652,7 @@ export default class FireModel {
    * @throws {Error} ドキュメントIDが指定されていない場合、またはドキュメントの取得に失敗した場合
    ****************************************************************************/
   async fetch(docId = null) {
-    const sender = "FireModel - fetch";
+    const sender = `${this.constructor.name} - fetch`;
     if (!docId) {
       throw new Error(getMessage(sender, "FETCH_CALLED_NO_DOCID"));
     }
@@ -645,7 +691,7 @@ export default class FireModel {
    ****************************************************************************/
   async fetchDoc(docId = null) {
     /* eslint-disable */
-    const sender = "FireModel - fetchDoc";
+    const sender = `${this.constructor.name} - fetchDoc`;
     if (!docId) {
       throw new Error(getMessage(sender, "FETCH_DOC_CALLED_NO_DOCID"));
     }
@@ -675,9 +721,8 @@ export default class FireModel {
    * @param {Array} constraints - Firestoreクエリの条件（whereなど）を格納した配列
    * @returns {Promise<Array<Object>>} - 取得したドキュメントのデータで初期化された、インスタンス化された当該クラスのオブジェクトの配列
    ****************************************************************************/
-  async fetchDocs(constraints = []) {
-    /* eslint-disable */
-    const sender = "FireModel - fetchDocs";
+  async fetchDocsOld(constraints = []) {
+    const sender = `${this.constructor.name} - fetchDocsOld`;
     console.info(getMessage(sender, "FETCH_DOCS_CALLED", this.#collectionPath));
     try {
       const colRef = collection(firestore, this.#collectionPath);
@@ -685,31 +730,140 @@ export default class FireModel {
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map((doc) => doc.data());
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error(`[${sender}] ${err.message}`);
       throw err;
     }
-    /* eslint-enable */
+  }
+
+  /****************************************************************************
+   * Firestoreコレクションから条件に一致するドキュメントを取得します。
+   * - クエリ形式に応じて、fetchDocsOldを呼び出すか、新バージョンのロジックを実行します。
+   * - クエリ条件が文字列であった場合、tokenMapを利用したNgram検索を実行します。
+   *
+   * @param {Array|string} constraints - クエリ条件の配列（新形式）または検索用の文字列
+   * @returns {Promise<Array<Object>>} - 取得したドキュメントのデータで初期化されたオブジェクトの配列
+   * @throws {Error} 不明なクエリタイプが指定された場合
+   ****************************************************************************/
+  async fetchDocs(constraints = []) {
+    // 新形式か旧形式かを判定する関数
+    const isOldVersion = (constraints) => {
+      return (
+        Array.isArray(constraints) &&
+        constraints.every((c) => typeof c === "function")
+      );
+    };
+
+    // 旧バージョンの引数が与えられた場合、fetchDocsOldをコール
+    if (isOldVersion(constraints)) {
+      return await this.fetchDocsOld(constraints);
+    }
+
+    const queryConstraints = [];
+
+    // constraintsが文字列である場合、N-gram検索用のクエリを生成
+    if (typeof constraints === "string") {
+      const tokens = [];
+      const target = constraints.replace(
+        /[\uD800-\uDBFF]|[\uDC00-\uDFFF]|~|\*|\[|\]|\s+/g,
+        ""
+      );
+
+      // 1文字と2文字のトークンを生成
+      for (let i = 0; i < target.length; i++) {
+        tokens.push(target.substring(i, i + 1));
+      }
+      for (let i = 0; i < target.length - 1; i++) {
+        tokens.push(target.substring(i, i + 2));
+      }
+
+      // tokenMapに含まれるトークンでFirestoreクエリを実行するためのwhere条件を追加
+      tokens.forEach((token) => {
+        queryConstraints.push(where(`tokenMap.${token}`, "==", true));
+      });
+    } else {
+      // 新バージョンのfetchDocsでのクエリ生成
+      const validQueryTypes = ["where", "orderBy", "limit"];
+      constraints.forEach((constraint) => {
+        const [type, ...args] = constraint;
+        switch (type) {
+          case "where":
+            queryConstraints.push(where(...args));
+            break;
+          case "orderBy":
+            queryConstraints.push(orderBy(args[0], args[1] || "asc"));
+            break;
+          case "limit":
+            queryConstraints.push(limit(args[0]));
+            break;
+          default:
+            // eslint-disable-next-line no-console
+            console.warn(
+              `Unknown query type: ${type}. Valid query types are: ${validQueryTypes.join(
+                ", "
+              )}`
+            );
+            throw new Error(
+              `Invalid query type: ${type}. Please use one of: ${validQueryTypes.join(
+                ", "
+              )}`
+            );
+        }
+      });
+    }
+
+    // Firestoreクエリの実行
+    const colRef = collection(firestore, this.#collectionPath);
+    const q = query(colRef, ...queryConstraints).withConverter(
+      this.converter()
+    );
+    const querySnapshot = await getDocs(q);
+
+    // 取得したドキュメントデータをオブジェクトの配列に変換して返却
+    return querySnapshot.docs.map((doc) => doc.data());
   }
 
   /****************************************************************************
    * 現在プロパティにセットされている値で、ドキュメントを更新します。
+   * - FirestoreのupdateメソッドはwithConverterを受け付けないため、toObject()を使用しています。
+   * @param {object|null} transaction - Firestoreトランザクションオブジェクト（省略可能）
    * @returns {Promise<DocumentReference>} 更新したドキュメントへの参照
+   * @throws {Error} ドキュメントの更新中にエラーが発生した場合にスローされます
    ****************************************************************************/
-  async update() {
-    /* eslint-disable */
-    const sender = "FireModel - update";
+  async update({ transaction = null } = {}) {
+    const sender = `${this.constructor.name} - update`;
+
+    // 更新呼び出しのログ出力
+    // eslint-disable-next-line no-console
     console.info(getMessage(sender, "UPDATE_CALLED", this.docId));
+
     try {
+      // ドキュメントIDが存在しない場合はエラーをスロー
       if (!this.docId) {
         throw new Error(getMessage(sender, "UPDATE_REQUIRES_DOCID"));
       }
+
       const colRef = collection(firestore, this.#collectionPath);
       const docRef = doc(colRef, this.docId); // updateDocの場合、withConverter.toFirestoreは使用できない。
+
+      // 更新前処理
       await this.beforeUpdate();
+
+      // 更新日時とユーザーIDの設定
       this.updateAt = new Date();
       this.uid = auth?.currentUser?.uid || "unknown";
-      await updateDoc(docRef, this.toObject());
+
+      // ドキュメントの更新処理
+      // await updateDoc(docRef, this.toObject());
+      await (transaction
+        ? transaction.update(docRef, this.toObject())
+        : updateDoc(docRef, this.toObject()));
+
+      // 更新後処理
       await this.afterUpdate();
+
+      // 成功ログ出力
+      // eslint-disable-next-line no-console
       console.info(
         getMessage(
           sender,
@@ -720,10 +874,11 @@ export default class FireModel {
       );
       return docRef;
     } catch (err) {
-      console.error(`[${sender}] ${err.message}`);
-      throw err;
+      const errorMsg = `Error in ${sender}: ${err.message}`;
+      // eslint-disable-next-line no-console
+      console.error(errorMsg);
+      throw new Error(errorMsg);
     }
-    /* eslint-enable */
   }
 
   /****************************************************************************
@@ -751,16 +906,29 @@ export default class FireModel {
   /****************************************************************************
    * 現在のドキュメントIDに該当するドキュメントを削除します。
    * - `logicalDelete`が指定されている場合、削除されたドキュメントはarchiveコレクションに移動されます。
+   * @param {object|null} transaction - Firestoreトランザクションオブジェクト（省略可能）
    * @returns {Promise<void>} - 削除が完了すると解決されるPromise
+   * @throws {Error} - ドキュメントの削除中にエラーが発生した場合にスローされます
    ****************************************************************************/
-  async delete() {
-    /* eslint-disable */
-    const sender = "FireModel - delete";
+  async delete({ transaction = null } = {}) {
+    const sender = `${this.constructor.name} - delete`;
+
+    // 削除呼び出しのログ出力
+    // eslint-disable-next-line no-console
     console.info(getMessage(sender, "DELETE_CALLED", this.docId));
+
     try {
+      // ドキュメントIDが存在しない場合はエラーをスロー
       if (!this.docId) {
         throw new Error(getMessage(sender, "DELETE_REQUIRES_DOCID"));
       }
+
+      /**
+       * 2024-09-10 修正の可能性あり
+       * - トランザクション処理であった場合に、`#hasChild()`でgetしていることが弊害になるかも。
+       * - 弊害になるようであればサブクラス側でチェックするように仕様を変更する必要がある？
+       */
+      // 子ドキュメントが存在する場合は削除を許可しない
       const hasChild = await this.#hasChild();
       if (hasChild) {
         throw new Error(
@@ -771,9 +939,21 @@ export default class FireModel {
           )
         );
       }
+
       const colRef = collection(firestore, this.#collectionPath);
       const docRef = doc(colRef, this.docId);
-      const docSnapshot = await getDoc(docRef);
+
+      /**
+       * 2024-09-11 コメント
+       * - 物理削除であればドキュメントを取得する必要はない。
+       * - 論理削除の場合、archiveコレクションにドキュメントのコピーを作成するために取得が必要
+       * - インスタンスに格納されているデータが完全とは言えないため。
+       * - 結果、一度ドキュメントを取得する必要がある。
+       */
+      const docSnapshot = await (transaction
+        ? transaction.get(docRef)
+        : getDoc(docRef));
+
       if (!docSnapshot.exists()) {
         throw new Error(
           getMessage(
@@ -784,21 +964,35 @@ export default class FireModel {
           )
         );
       }
+
+      // 削除前処理
       await this.beforeDelete();
+
       if (this.#logicalDelete) {
         const archiveColRef = collection(
           firestore,
           `${this.#collectionPath}_archive`
         );
         const archiveDocRef = doc(archiveColRef, this.docId);
-        const batch = writeBatch(firestore);
-        batch.set(archiveDocRef, docSnapshot.data());
-        batch.delete(docRef);
-        await batch.commit();
+
+        if (transaction) {
+          transaction.set(archiveDocRef, docSnapshot.data());
+          transaction.delete(docRef);
+        } else {
+          await runTransaction(firestore, async (newTransaction) => {
+            newTransaction.set(archiveDocRef, docSnapshot.data());
+            newTransaction.delete(docRef);
+          });
+        }
       } else {
-        await deleteDoc(docRef);
+        await (transaction ? transaction.delete(docRef) : deleteDoc(docRef));
       }
+
+      // 削除後処理
       await this.afterDelete();
+
+      // 成功ログ出力
+      // eslint-disable-next-line no-console
       console.info(
         getMessage(
           sender,
@@ -808,10 +1002,11 @@ export default class FireModel {
         )
       );
     } catch (err) {
-      console.error(`[${sender}] ${err.message}`);
-      throw err;
+      const errorMsg = `Error in ${sender}: ${err.message}`;
+      // eslint-disable-next-line no-console
+      console.error(errorMsg);
+      throw new Error(errorMsg);
     }
-    /* eslint-enable */
   }
 
   /****************************************************************************
@@ -825,7 +1020,7 @@ export default class FireModel {
    * @returns {Promise<void>} - すべての処理が完了すると解決されるPromise
    ****************************************************************************/
   async deleteAll(batchSize = 500, pauseDuration = 500) {
-    const sender = "FireModel - deleteAll";
+    const sender = `${this.constructor.name} - deleteAll`;
     console.info(getMessage(sender, "DELETE_ALL_CALLED", this.#collectionPath));
     // 引数のバリデーション
     if (typeof batchSize !== "number" || batchSize <= 0) {
@@ -869,7 +1064,7 @@ export default class FireModel {
    ****************************************************************************/
   async restore(docId) {
     /* eslint-disable */
-    const sender = "FireModel - restore";
+    const sender = `${this.constructor.name} - restore`;
     if (!docId) {
       throw new Error(getMessage(sender, "RESTORE_CALLED_NO_DOCID"));
     } else {
@@ -909,7 +1104,7 @@ export default class FireModel {
    ****************************************************************************/
   unsubscribe() {
     /* eslint-disable */
-    const sender = "FireModel - unsubscribe";
+    const sender = `${this.constructor.name} - unsubscribe`;
     console.info(getMessage(sender, "UNSUBSCRIBE_CALLED"));
     if (this.#listener) {
       this.#listener();
@@ -931,7 +1126,7 @@ export default class FireModel {
    ****************************************************************************/
   subscribe(docId) {
     /* eslint-disable */
-    const sender = "FireModel - subscribe";
+    const sender = `${this.constructor.name} - subscribe`;
     if (!docId) {
       throw new Error(
         getMessage(sender, "SUBSCRIBE_CALLED_NO_DOCID", this.#collectionPath)
@@ -969,12 +1164,14 @@ export default class FireModel {
   /****************************************************************************
    * Firestoreコレクションに対するリアルタイムリスナーを設定し、ドキュメントの変化を監視します。
    * クエリ条件に一致するドキュメントのリスナーを設定し、結果は`#items`に格納されます。
+   * 旧バージョンでは、Firestoreのwhereなどを直接渡す形式です。
+   *
    * @param {Array} constraints - Firestoreクエリの条件（whereなど）を格納した配列
    * @returns {Array<Object>} - リアルタイムで監視しているドキュメントのデータが格納された配列
    ****************************************************************************/
-  subscribeDocs(constraints = []) {
+  subscribeDocsOld(constraints = []) {
     /* eslint-disable */
-    const sender = "FireModel - subscribeDocs";
+    const sender = `${this.constructor.name} - subscribeDocsOld`;
     console.info(
       getMessage(sender, "SUBSCRIBE_DOCS_CALLED", this.#collectionPath)
     );
@@ -1007,5 +1204,126 @@ export default class FireModel {
       throw err;
     }
     /* eslint-enable */
+  }
+
+  /****************************************************************************
+   * Firestoreコレクションに対するリアルタイムリスナーを設定し、ドキュメントの変化を監視します。
+   * - クエリ条件が文字列であった場合、tokenMapを利用したN-gram検索を実行します。
+   * - クエリ条件の中身が関数（function）の場合はsubscribeDocsOldを呼び出します。
+   *
+   * @param {Array|string} constraints - クエリ条件の配列（新形式）または検索用の文字列
+   * @returns {Array<Object>} - リアルタイムで監視しているドキュメントのデータが格納された配列
+   ****************************************************************************/
+  subscribeDocs(constraints = []) {
+    const sender = `${this.constructor.name} - subscribeDocs`;
+
+    // 新形式か旧形式かを判定する関数
+    const isOldVersion = (constraints) => {
+      return (
+        Array.isArray(constraints) &&
+        constraints.every((c) => typeof c === "function")
+      );
+    };
+
+    // 旧バージョンの引数が与えられた場合、subscribeDocsOldをコール
+    if (isOldVersion(constraints)) {
+      return this.subscribeDocsOld(constraints);
+    }
+
+    // eslint-disable-next-line no-console
+    console.info(
+      getMessage(sender, "SUBSCRIBE_DOCS_CALLED", this.#collectionPath)
+    );
+
+    try {
+      if (this.#listener) {
+        // eslint-disable-next-line no-console
+        console.info(
+          getMessage(sender, "LISTENER_HAS_SET", this.#collectionPath)
+        );
+        this.unsubscribe();
+      }
+
+      const queryConstraints = [];
+
+      // constraintsが文字列である場合、N-gram検索用のクエリを生成
+      if (typeof constraints === "string") {
+        const tokens = [];
+        const target = constraints.replace(
+          /[\uD800-\uDBFF]|[\uDC00-\uDFFF]|~|\*|\[|\]|\s+/g,
+          ""
+        );
+
+        // 1文字と2文字のトークンを生成
+        for (let i = 0; i < target.length; i++) {
+          tokens.push(target.substring(i, i + 1));
+        }
+        for (let i = 0; i < target.length - 1; i++) {
+          tokens.push(target.substring(i, i + 2));
+        }
+
+        // tokenMapに含まれるトークンでFirestoreクエリを実行するためのwhere条件を追加
+        tokens.forEach((token) => {
+          queryConstraints.push(where(`tokenMap.${token}`, "==", true));
+        });
+      } else {
+        // 通常のクエリ条件（where, orderBy, limit）を処理
+        const validQueryTypes = ["where", "orderBy", "limit"];
+        constraints.forEach((constraint) => {
+          const [type, ...args] = constraint;
+          switch (type) {
+            case "where":
+              queryConstraints.push(where(...args));
+              break;
+            case "orderBy":
+              queryConstraints.push(orderBy(args[0], args[1] || "asc"));
+              break;
+            case "limit":
+              queryConstraints.push(limit(args[0]));
+              break;
+            default:
+              // eslint-disable-next-line no-console
+              console.warn(
+                `Unknown query type: ${type}. Valid query types are: ${validQueryTypes.join(
+                  ", "
+                )}`
+              );
+              throw new Error(
+                `Invalid query type: ${type}. Please use one of: ${validQueryTypes.join(
+                  ", "
+                )}`
+              );
+          }
+        });
+      }
+
+      // Firestoreコレクションに対してリアルタイムリスナーを設定
+      const colRef = collection(firestore, this.#collectionPath);
+      const q = query(colRef, ...queryConstraints).withConverter(
+        this.converter()
+      );
+      this.#listener = onSnapshot(q, (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          const item = change.doc.data();
+          const index = this.#items.findIndex(
+            ({ docId }) => docId === item.docId
+          );
+          if (change.type === "added") this.#items.push(item);
+          if (change.type === "modified") this.#items.splice(index, 1, item);
+          if (change.type === "removed") this.#items.splice(index, 1);
+        });
+      });
+
+      // eslint-disable-next-line no-console
+      console.info(
+        getMessage(sender, "SUBSCRIBE_DOCS_SUCCESS", this.#collectionPath)
+      );
+
+      return this.#items;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(`[${sender}] ${err.message}`);
+      throw err;
+    }
   }
 }
