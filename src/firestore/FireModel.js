@@ -30,6 +30,7 @@ import { auth, firestore } from "../firebase.init.js";
  * - Firestoreのリアルタイムリスナーを使用したドキュメントの監視
  * - 依存するコレクション（hasMany）の管理
  * - Firestoreの脆弱なクエリを補うため、指定されたプロパティに対するtokenMapを生成します。
+ * - サブクラスで`customClassMap`を使用することにより、initialize()でカスタムクラスを使用しているプロパティの保持が可能です。
  *
  * 使用方法:
  * このクラスは直接使用せず、特定のコレクションに対応するサブクラスを作成して使用します。
@@ -90,9 +91,14 @@ import { auth, firestore } from "../firebase.init.js";
  * - Firestoreのリアルタイムリスナーを活用することで、ドキュメントの変更をリアルタイムで監視し、自動的にデータモデルに反映します。
  *
  * @author shisyamo4131
- * @version 1.7.0
+ * @version 1.7.1
  * @see https://firebase.google.com/docs/firestore
  * @updates
+ * - version 1.7.1 - 2024-09-19 - initialize()でitemのcreateAt、updateAtを編集する際、itemがnullだとエラーになるのを修正。
+ *                              - initialize()でcustomClassMapによるカスタムクラスのマッピング機能を実装。
+ *                              - clone()がカスタムクラスも適用できるようにするなど大幅に改善。
+ *                              - toObject()でプロパティがカスタムクラスであった場合に、当該クラスのtoObject()を呼び出すように機能を追加。
+ *                              - fromFirestore()がカスタムクラスも適用できるように改善。
  * - version 1.7.0 - 2024-09-11 - fetchDocsをfetchDocsOldとし、fetchDocsを再実装。受け付ける引数の形式を変更し、Ngram検索も可能に。
  *                              - subscribeDocsをsubscribeDocsOldとし、subscribeDocsを再実装。受け付ける引数の形式を変更し、Ngram検索も可能に。
  *                              - 各メソッドで出力されるコンソールに使用しているsenderがクラス名を動的に生成するように修正。
@@ -191,7 +197,8 @@ export default class FireModel {
    * @returns {this.constructor} - 複製された新しいインスタンス
    ****************************************************************************/
   clone() {
-    return Object.assign(new this.constructor(), structuredClone(this));
+    // return Object.assign(new this.constructor(), structuredClone(this));
+    return new this.constructor(this);
   }
 
   /****************************************************************************
@@ -351,6 +358,9 @@ export default class FireModel {
         typeof propDefault === "function" ? propDefault() : propDefault;
     });
 
+    // itemがnullやundefinedであれば終了
+    if (!item) return;
+
     this.docId = item?.docId || "";
     this.uid = item?.uid || "";
 
@@ -359,24 +369,58 @@ export default class FireModel {
      * FirestoreにDateオブジェクトを保存すると、Firestore timestampとして登録されるため、
      * これをtoDate()を使用してDateオブジェクトに変換します。
      */
-    if (item.createAt instanceof Date) {
+    if (item?.createAt instanceof Date) {
       this.createAt = item.createAt;
-    } else if (item.createAt?.toDate) {
+    } else if (item?.createAt?.toDate) {
       this.createAt = item.createAt.toDate();
     } else {
       this.createAt = null;
     }
-    if (item.updateAt instanceof Date) {
+    if (item?.updateAt instanceof Date) {
       this.updateAt = item.updateAt;
-    } else if (item.updateAt?.toDate) {
+    } else if (item?.updateAt?.toDate) {
       this.updateAt = item.updateAt.toDate();
     } else {
       this.updateAt = null;
     }
 
+    /**
+     * `item`が保有するすべてのプロパティについて、自身の同一名プロパティに値を複製します。
+     * - オブジェクトの参照渡しを避けるためJSON.parse(JSON.stringify(item[key]))を使っていましたが、
+     *   プロパティの値がカスタムクラスであった場合に、プレーンなオブジェクトに変換されていまっていました。
+     * - サブクラスで`customClassMap`を用意し、プロパティにカスタムクラスが定義されている場合、
+     *   当該クラスのインスタンスをセットするようにしました。
+     */
+
+    // Object.keys(item).forEach((key) => {
+    //   if (key in this && key !== "createAt" && key !== "updateAt") {
+    //     this[key] = JSON.parse(JSON.stringify(item[key]));
+    //   }
+    // });
+
+    // サブクラスで定義されたcustomClassMapを取得
+    const customClassMap = this.constructor.customClassMap || {};
+
     Object.keys(item).forEach((key) => {
       if (key in this && key !== "createAt" && key !== "updateAt") {
-        this[key] = JSON.parse(JSON.stringify(item[key]));
+        // 配列の場合、配列の各要素にカスタムクラスを適用
+        if (Array.isArray(item[key]) && customClassMap[key]) {
+          this[key] = item[key].map((element) => {
+            return new customClassMap[key](element);
+          });
+        }
+        // カスタムクラスのマッピングがある場合、そのクラスで再初期化
+        else if (customClassMap[key] && item[key] instanceof Object) {
+          this[key] = new customClassMap[key](item[key]);
+        }
+        // オブジェクト以外のプリミティブ型（文字列、数値、ブールなど）の場合
+        else if (typeof item[key] !== "object") {
+          this[key] = item[key];
+        }
+        // 通常のオブジェクトの場合はディープコピー
+        else {
+          this[key] = JSON.parse(JSON.stringify(item[key]));
+        }
       }
     });
   }
@@ -405,10 +449,40 @@ export default class FireModel {
     };
   }
 
+  // /****************************************************************************
+  //  * クラスインスタンスを純粋なオブジェクトに変換します。
+  //  * - 継承先のクラスで定義されたプロパティも含めて出力します。
+  //  * - `enumerable: true`のプロパティのみを出力します。
+  //  *
+  //  * @returns {Object} - Firestoreに保存可能なオブジェクト形式
+  //  ****************************************************************************/
+  // toObject() {
+  //   const obj = {};
+
+  //   // プロトタイプチェーンをたどってプロパティを収集
+  //   let currentObj = this;
+  //   while (currentObj !== null) {
+  //     Object.entries(Object.getOwnPropertyDescriptors(currentObj)).forEach(
+  //       ([key, descriptor]) => {
+  //         if (descriptor.enumerable) {
+  //           obj[key] = this[key];
+  //         }
+  //       }
+  //     );
+  //     currentObj = Object.getPrototypeOf(currentObj);
+  //   }
+
+  //   return obj;
+  // }
+
   /****************************************************************************
    * クラスインスタンスを純粋なオブジェクトに変換します。
    * - 継承先のクラスで定義されたプロパティも含めて出力します。
    * - `enumerable: true`のプロパティのみを出力します。
+   * - カスタムクラスが`toObject`を持たない場合はそのまま出力します。
+   * - 値がない場合は`null`を出力します。
+   * - 配列の各要素がカスタムクラスの場合も対応します。
+   * - カスタムクラスを持たないオブジェクトはディープコピーします。
    *
    * @returns {Object} - Firestoreに保存可能なオブジェクト形式
    ****************************************************************************/
@@ -421,7 +495,37 @@ export default class FireModel {
       Object.entries(Object.getOwnPropertyDescriptors(currentObj)).forEach(
         ([key, descriptor]) => {
           if (descriptor.enumerable) {
-            obj[key] = this[key];
+            const value = this[key];
+
+            // カスタムクラスがtoObjectメソッドを持っている場合は再帰的に呼び出す
+            if (value && typeof value.toObject === "function") {
+              obj[key] = value.toObject();
+            }
+            // 配列の場合、各要素に対して再帰的にtoObjectを呼び出す
+            else if (Array.isArray(value)) {
+              obj[key] = value.map((item) => {
+                // カスタムクラスの処理
+                if (item && typeof item.toObject === "function") {
+                  return item.toObject();
+                }
+                // オブジェクトならディープコピー
+                else if (item && typeof item === "object") {
+                  return JSON.parse(JSON.stringify(item));
+                }
+                // プリミティブ型はそのまま返す
+                else {
+                  return item;
+                }
+              });
+            }
+            // カスタムクラスがtoObjectを持っていない場合はそのまま値を設定
+            else if (value !== undefined) {
+              obj[key] = value;
+            }
+            // 値がnullまたはundefinedの場合はnullを設定
+            else {
+              obj[key] = null;
+            }
           }
         }
       );
@@ -431,15 +535,49 @@ export default class FireModel {
     return obj;
   }
 
+  // /****************************************************************************
+  //  * Firestoreから読み込んだデータをクラスインスタンスに変換するメソッドです。
+  //  * - サブクラスでオーバーライドすることができます。
+  //  *
+  //  * @param {Object} snapshot - Firestoreから取得したドキュメントスナップショット
+  //  * @returns {Object} - クラスインスタンス
+  //  ****************************************************************************/
+  // fromFirestore(snapshot) {
+  //   const data = snapshot.data();
+  //   return new this.constructor(
+  //     data,
+  //     this.#collectionPath,
+  //     this.#hasMany,
+  //     this.#logicalDelete
+  //   );
+  // }
+
   /****************************************************************************
-   * Firestoreから読み込んだデータをクラスインスタンスに変換するメソッドです。
-   * - サブクラスでオーバーライドすることができます。
+   * Firestoreから取得したデータをクラスインスタンスに変換します。
+   * - カスタムクラスが定義されている場合、`customClassMap`を参照して適切なインスタンスを生成します。
    *
    * @param {Object} snapshot - Firestoreから取得したドキュメントスナップショット
    * @returns {Object} - クラスインスタンス
    ****************************************************************************/
   fromFirestore(snapshot) {
     const data = snapshot.data();
+
+    // サブクラスで定義されたカスタムクラスのマッピング
+    const customClassMap = this.constructor.customClassMap || {};
+
+    // カスタムクラスの処理を行いつつ、データをインスタンスに初期化
+    Object.keys(data).forEach((key) => {
+      // 配列の場合、各要素にカスタムクラスを適用
+      if (Array.isArray(data[key]) && customClassMap[key]) {
+        data[key] = data[key].map((item) => new customClassMap[key](item));
+      }
+      // カスタムクラスのインスタンスに変換
+      else if (customClassMap[key]) {
+        data[key] = new customClassMap[key](data[key]);
+      }
+    });
+
+    // スーパークラスのインスタンス初期化を呼び出し、カスタムクラスを適用したデータを使用
     return new this.constructor(
       data,
       this.#collectionPath,

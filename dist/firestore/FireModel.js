@@ -8,7 +8,6 @@ var _firestore = require("firebase/firestore");
 var _firestoreMessages = require("./firestore-messages.js");
 var _firebaseInit = require("../firebase.init.js");
 function _createForOfIteratorHelper(r, e) { var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (!t) { if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) { t && (r = t); var _n = 0, F = function F() {}; return { s: F, n: function n() { return _n >= r.length ? { done: !0 } : { done: !1, value: r[_n++] }; }, e: function e(r) { throw r; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var o, a = !0, u = !1; return { s: function s() { t = t.call(r); }, n: function n() { var r = t.next(); return a = r.done, r; }, e: function e(r) { u = !0, o = r; }, f: function f() { try { a || null == t["return"] || t["return"](); } finally { if (u) throw o; } } }; }
-function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function _toArray(r) { return _arrayWithHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableRest(); }
 function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
 function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
@@ -23,6 +22,7 @@ function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) 
 function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function _classCallCheck(a, n) { if (!(a instanceof n)) throw new TypeError("Cannot call a class as a function"); }
 function _defineProperties(e, r) { for (var t = 0; t < r.length; t++) { var o = r[t]; o.enumerable = o.enumerable || !1, o.configurable = !0, "value" in o && (o.writable = !0), Object.defineProperty(e, _toPropertyKey(o.key), o); } }
 function _createClass(e, r, t) { return r && _defineProperties(e.prototype, r), t && _defineProperties(e, t), Object.defineProperty(e, "prototype", { writable: !1 }), e; }
@@ -46,6 +46,7 @@ function _assertClassBrand(e, t, n) { if ("function" == typeof e ? e === t : e.h
  * - Firestoreのリアルタイムリスナーを使用したドキュメントの監視
  * - 依存するコレクション（hasMany）の管理
  * - Firestoreの脆弱なクエリを補うため、指定されたプロパティに対するtokenMapを生成します。
+ * - サブクラスで`customClassMap`を使用することにより、initialize()でカスタムクラスを使用しているプロパティの保持が可能です。
  *
  * 使用方法:
  * このクラスは直接使用せず、特定のコレクションに対応するサブクラスを作成して使用します。
@@ -106,9 +107,14 @@ function _assertClassBrand(e, t, n) { if ("function" == typeof e ? e === t : e.h
  * - Firestoreのリアルタイムリスナーを活用することで、ドキュメントの変更をリアルタイムで監視し、自動的にデータモデルに反映します。
  *
  * @author shisyamo4131
- * @version 1.7.0
+ * @version 1.7.1
  * @see https://firebase.google.com/docs/firestore
  * @updates
+ * - version 1.7.1 - 2024-09-19 - initialize()でitemのcreateAt、updateAtを編集する際、itemがnullだとエラーになるのを修正。
+ *                              - initialize()でcustomClassMapによるカスタムクラスのマッピング機能を実装。
+ *                              - clone()がカスタムクラスも適用できるようにするなど大幅に改善。
+ *                              - toObject()でプロパティがカスタムクラスであった場合に、当該クラスのtoObject()を呼び出すように機能を追加。
+ *                              - fromFirestore()がカスタムクラスも適用できるように改善。
  * - version 1.7.0 - 2024-09-11 - fetchDocsをfetchDocsOldとし、fetchDocsを再実装。受け付ける引数の形式を変更し、Ngram検索も可能に。
  *                              - subscribeDocsをsubscribeDocsOldとし、subscribeDocsを再実装。受け付ける引数の形式を変更し、Ngram検索も可能に。
  *                              - 各メソッドで出力されるコンソールに使用しているsenderがクラス名を動的に生成するように修正。
@@ -221,7 +227,8 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
   return _createClass(FireModel, [{
     key: "clone",
     value: function clone() {
-      return Object.assign(new this.constructor(), structuredClone(this));
+      // return Object.assign(new this.constructor(), structuredClone(this));
+      return new this.constructor(this);
     }
   }, {
     key: "validateProperties",
@@ -292,6 +299,9 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
         var propDefault = _classPrivateFieldGet(_classProps, _this2)[key]["default"];
         _this2[key] = typeof propDefault === "function" ? propDefault() : propDefault;
       });
+
+      // itemがnullやundefinedであれば終了
+      if (!item) return;
       this.docId = (item === null || item === void 0 ? void 0 : item.docId) || "";
       this.uid = (item === null || item === void 0 ? void 0 : item.uid) || "";
 
@@ -300,23 +310,57 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
        * FirestoreにDateオブジェクトを保存すると、Firestore timestampとして登録されるため、
        * これをtoDate()を使用してDateオブジェクトに変換します。
        */
-      if (item.createAt instanceof Date) {
+      if ((item === null || item === void 0 ? void 0 : item.createAt) instanceof Date) {
         this.createAt = item.createAt;
-      } else if ((_item$createAt = item.createAt) !== null && _item$createAt !== void 0 && _item$createAt.toDate) {
+      } else if (item !== null && item !== void 0 && (_item$createAt = item.createAt) !== null && _item$createAt !== void 0 && _item$createAt.toDate) {
         this.createAt = item.createAt.toDate();
       } else {
         this.createAt = null;
       }
-      if (item.updateAt instanceof Date) {
+      if ((item === null || item === void 0 ? void 0 : item.updateAt) instanceof Date) {
         this.updateAt = item.updateAt;
-      } else if ((_item$updateAt = item.updateAt) !== null && _item$updateAt !== void 0 && _item$updateAt.toDate) {
+      } else if (item !== null && item !== void 0 && (_item$updateAt = item.updateAt) !== null && _item$updateAt !== void 0 && _item$updateAt.toDate) {
         this.updateAt = item.updateAt.toDate();
       } else {
         this.updateAt = null;
       }
+
+      /**
+       * `item`が保有するすべてのプロパティについて、自身の同一名プロパティに値を複製します。
+       * - オブジェクトの参照渡しを避けるためJSON.parse(JSON.stringify(item[key]))を使っていましたが、
+       *   プロパティの値がカスタムクラスであった場合に、プレーンなオブジェクトに変換されていまっていました。
+       * - サブクラスで`customClassMap`を用意し、プロパティにカスタムクラスが定義されている場合、
+       *   当該クラスのインスタンスをセットするようにしました。
+       */
+
+      // Object.keys(item).forEach((key) => {
+      //   if (key in this && key !== "createAt" && key !== "updateAt") {
+      //     this[key] = JSON.parse(JSON.stringify(item[key]));
+      //   }
+      // });
+
+      // サブクラスで定義されたcustomClassMapを取得
+      var customClassMap = this.constructor.customClassMap || {};
       Object.keys(item).forEach(function (key) {
         if (key in _this2 && key !== "createAt" && key !== "updateAt") {
-          _this2[key] = JSON.parse(JSON.stringify(item[key]));
+          // 配列の場合、配列の各要素にカスタムクラスを適用
+          if (Array.isArray(item[key]) && customClassMap[key]) {
+            _this2[key] = item[key].map(function (element) {
+              return new customClassMap[key](element);
+            });
+          }
+          // カスタムクラスのマッピングがある場合、そのクラスで再初期化
+          else if (customClassMap[key] && item[key] instanceof Object) {
+            _this2[key] = new customClassMap[key](item[key]);
+          }
+          // オブジェクト以外のプリミティブ型（文字列、数値、ブールなど）の場合
+          else if (_typeof(item[key]) !== "object") {
+            _this2[key] = item[key];
+          }
+          // 通常のオブジェクトの場合はディープコピー
+          else {
+            _this2[key] = JSON.parse(JSON.stringify(item[key]));
+          }
         }
       });
     }
@@ -351,10 +395,40 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       };
     }
 
+    // /****************************************************************************
+    //  * クラスインスタンスを純粋なオブジェクトに変換します。
+    //  * - 継承先のクラスで定義されたプロパティも含めて出力します。
+    //  * - `enumerable: true`のプロパティのみを出力します。
+    //  *
+    //  * @returns {Object} - Firestoreに保存可能なオブジェクト形式
+    //  ****************************************************************************/
+    // toObject() {
+    //   const obj = {};
+
+    //   // プロトタイプチェーンをたどってプロパティを収集
+    //   let currentObj = this;
+    //   while (currentObj !== null) {
+    //     Object.entries(Object.getOwnPropertyDescriptors(currentObj)).forEach(
+    //       ([key, descriptor]) => {
+    //         if (descriptor.enumerable) {
+    //           obj[key] = this[key];
+    //         }
+    //       }
+    //     );
+    //     currentObj = Object.getPrototypeOf(currentObj);
+    //   }
+
+    //   return obj;
+    // }
+
     /****************************************************************************
      * クラスインスタンスを純粋なオブジェクトに変換します。
      * - 継承先のクラスで定義されたプロパティも含めて出力します。
      * - `enumerable: true`のプロパティのみを出力します。
+     * - カスタムクラスが`toObject`を持たない場合はそのまま出力します。
+     * - 値がない場合は`null`を出力します。
+     * - 配列の各要素がカスタムクラスの場合も対応します。
+     * - カスタムクラスを持たないオブジェクトはディープコピーします。
      *
      * @returns {Object} - Firestoreに保存可能なオブジェクト形式
      ****************************************************************************/
@@ -372,7 +446,37 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
             key = _ref2[0],
             descriptor = _ref2[1];
           if (descriptor.enumerable) {
-            obj[key] = _this4[key];
+            var value = _this4[key];
+
+            // カスタムクラスがtoObjectメソッドを持っている場合は再帰的に呼び出す
+            if (value && typeof value.toObject === "function") {
+              obj[key] = value.toObject();
+            }
+            // 配列の場合、各要素に対して再帰的にtoObjectを呼び出す
+            else if (Array.isArray(value)) {
+              obj[key] = value.map(function (item) {
+                // カスタムクラスの処理
+                if (item && typeof item.toObject === "function") {
+                  return item.toObject();
+                }
+                // オブジェクトならディープコピー
+                else if (item && _typeof(item) === "object") {
+                  return JSON.parse(JSON.stringify(item));
+                }
+                // プリミティブ型はそのまま返す
+                else {
+                  return item;
+                }
+              });
+            }
+            // カスタムクラスがtoObjectを持っていない場合はそのまま値を設定
+            else if (value !== undefined) {
+              obj[key] = value;
+            }
+            // 値がnullまたはundefinedの場合はnullを設定
+            else {
+              obj[key] = null;
+            }
           }
         });
         currentObj = Object.getPrototypeOf(currentObj);
@@ -380,9 +484,26 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       return obj;
     }
 
+    // /****************************************************************************
+    //  * Firestoreから読み込んだデータをクラスインスタンスに変換するメソッドです。
+    //  * - サブクラスでオーバーライドすることができます。
+    //  *
+    //  * @param {Object} snapshot - Firestoreから取得したドキュメントスナップショット
+    //  * @returns {Object} - クラスインスタンス
+    //  ****************************************************************************/
+    // fromFirestore(snapshot) {
+    //   const data = snapshot.data();
+    //   return new this.constructor(
+    //     data,
+    //     this.#collectionPath,
+    //     this.#hasMany,
+    //     this.#logicalDelete
+    //   );
+    // }
+
     /****************************************************************************
-     * Firestoreから読み込んだデータをクラスインスタンスに変換するメソッドです。
-     * - サブクラスでオーバーライドすることができます。
+     * Firestoreから取得したデータをクラスインスタンスに変換します。
+     * - カスタムクラスが定義されている場合、`customClassMap`を参照して適切なインスタンスを生成します。
      *
      * @param {Object} snapshot - Firestoreから取得したドキュメントスナップショット
      * @returns {Object} - クラスインスタンス
@@ -391,6 +512,25 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
     key: "fromFirestore",
     value: function fromFirestore(snapshot) {
       var data = snapshot.data();
+
+      // サブクラスで定義されたカスタムクラスのマッピング
+      var customClassMap = this.constructor.customClassMap || {};
+
+      // カスタムクラスの処理を行いつつ、データをインスタンスに初期化
+      Object.keys(data).forEach(function (key) {
+        // 配列の場合、各要素にカスタムクラスを適用
+        if (Array.isArray(data[key]) && customClassMap[key]) {
+          data[key] = data[key].map(function (item) {
+            return new customClassMap[key](item);
+          });
+        }
+        // カスタムクラスのインスタンスに変換
+        else if (customClassMap[key]) {
+          data[key] = new customClassMap[key](data[key]);
+        }
+      });
+
+      // スーパークラスのインスタンス初期化を呼び出し、カスタムクラスを適用したデータを使用
       return new this.constructor(data, _classPrivateFieldGet(_collectionPath, this), _classPrivateFieldGet(_hasMany, this), _classPrivateFieldGet(_logicalDelete, this));
     }
 
@@ -863,7 +1003,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
                       queryConstraints.push(_firestore.where.apply(void 0, _toConsumableArray(args)));
                       break;
                     case "orderBy":
-                      queryConstraints.push(orderBy(args[0], args[1] || "asc"));
+                      queryConstraints.push((0, _firestore.orderBy)(args[0], args[1] || "asc"));
                       break;
                     case "limit":
                       queryConstraints.push((0, _firestore.limit)(args[0]));
@@ -1459,7 +1599,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
                 queryConstraints.push(_firestore.where.apply(void 0, _toConsumableArray(args)));
                 break;
               case "orderBy":
-                queryConstraints.push(orderBy(args[0], args[1] || "asc"));
+                queryConstraints.push((0, _firestore.orderBy)(args[0], args[1] || "asc"));
                 break;
               case "limit":
                 queryConstraints.push((0, _firestore.limit)(args[0]));
