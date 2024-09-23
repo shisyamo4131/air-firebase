@@ -31,6 +31,9 @@ import { auth, firestore } from "../firebase.init.js";
  * - 依存するコレクション（hasMany）の管理
  * - Firestoreの脆弱なクエリを補うため、指定されたプロパティに対するtokenMapを生成します。
  * - サブクラスで`customClassMap`を使用することにより、initialize()でカスタムクラスを使用しているプロパティの保持が可能です。
+ * - ドキュメントの削除時、従属ドキュメントの存在をチェックし、存在する場合はエラーをスローします。
+ *   但し、削除処理がトランザクションであった場合、従属ドキュメントの存在をチェックしません。
+ *   サブクラス側でhasChild()を使ってチェックする必要があります。
  *
  * 使用方法:
  * このクラスは直接使用せず、特定のコレクションに対応するサブクラスを作成して使用します。
@@ -91,9 +94,11 @@ import { auth, firestore } from "../firebase.init.js";
  * - Firestoreのリアルタイムリスナーを活用することで、ドキュメントの変更をリアルタイムで監視し、自動的にデータモデルに反映します。
  *
  * @author shisyamo4131
- * @version 1.7.1
+ * @version 1.8.0
  * @see https://firebase.google.com/docs/firestore
  * @updates
+ * - version 1.8.0 - 2024-09-23 - delete()で、transactionが設定されている場合は従属ドキュメントの存在チェックを行わないように修正。
+ *                              - サブクラス側で従属ドキュメントの存在をチェックできるように、hasChild()を外部に公開。
  * - version 1.7.1 - 2024-09-19 - initialize()でitemのcreateAt、updateAtを編集する際、itemがnullだとエラーになるのを修正。
  *                              - initialize()でcustomClassMapによるカスタムクラスのマッピング機能を実装。
  *                              - clone()がカスタムクラスも適用できるようにするなど大幅に改善。
@@ -1024,7 +1029,7 @@ export default class FireModel {
    * 依存している子ドキュメントが存在しているかどうかを返します。
    * @returns {Promise<object|boolean>} - 子ドキュメントが存在する場合は`hasMany`の該当項目を返し、存在しない場合は`false`を返します。
    ****************************************************************************/
-  async #hasChild() {
+  async hasChild() {
     for (const item of this.#hasMany) {
       const colRef =
         item.type === "collection"
@@ -1065,17 +1070,33 @@ export default class FireModel {
        * 2024-09-10 修正の可能性あり
        * - トランザクション処理であった場合に、`#hasChild()`でgetしていることが弊害になるかも。
        * - 弊害になるようであればサブクラス側でチェックするように仕様を変更する必要がある？
+       * 2024-09-23 修正
+       * - 上記弊害が発生。
+       * - transactionが設定されていた場合は従属ドキュメントの存在チェックをスルーするように。
+       * - hasChildメソッドを外部に公開し、サブクラス側でチェックできるように。
        */
       // 子ドキュメントが存在する場合は削除を許可しない
-      const hasChild = await this.#hasChild();
-      if (hasChild) {
-        throw new Error(
-          getMessage(
-            sender,
-            "COULD_NOT_DELETE_CHILD_EXIST",
-            hasChild.collection
-          )
-        );
+      // const hasChild = await this.#hasChild();
+      // if (hasChild) {
+      //   throw new Error(
+      //     getMessage(
+      //       sender,
+      //       "COULD_NOT_DELETE_CHILD_EXIST",
+      //       hasChild.collection
+      //     )
+      //   );
+      // }
+      if (!transaction) {
+        const hasChild = await this.hasChild();
+        if (hasChild) {
+          throw new Error(
+            getMessage(
+              sender,
+              "COULD_NOT_DELETE_CHILD_EXIST",
+              hasChild.collection
+            )
+          );
+        }
       }
 
       const colRef = collection(firestore, this.#collectionPath);
