@@ -176,9 +176,9 @@ export default class FireModel {
    * @param {Object} item - 初期化するデータモデルのプロパティを含むオブジェクト
    */
   constructor(item = {}) {
+    this.#loadCollectionPath();
     this.#loadClassProps();
     this.#loadUseAutonumber();
-    this.#loadCollectionPath();
     this.#loadLogicalDelete();
     this.#loadHasMany();
     this.#loadTokenFields();
@@ -235,6 +235,8 @@ export default class FireModel {
    * @returns {void}
    ****************************************************************************/
   #loadClassProps() {
+    const sender = `${this.#collectionPath} - loadClassProps`;
+
     // `classProps` が未定義の場合は空のオブジェクトをセット
     if (typeof this.constructor.classProps === "undefined") {
       this.#classProps = {};
@@ -246,18 +248,14 @@ export default class FireModel {
       typeof this.constructor.classProps !== "object" ||
       this.constructor.classProps === null
     ) {
-      throw new Error(
-        `[FireModel] 'classProps' プロパティはオブジェクトである必要があります。`
-      );
+      throw new Error(getMessage(sender, "CLASS_PROPS_MUST_BE_OBJECT"));
     }
 
     // 各プロパティの検証
     Object.entries(this.constructor.classProps).forEach(([key, value]) => {
       // プロパティがオブジェクトであることを確認
       if (typeof value !== "object" || value === null) {
-        throw new Error(
-          `classPropsのプロパティ '${key}' はオブジェクトである必要があります。`
-        );
+        throw new Error(getMessage(sender, "CLASS_PROP_MUST_BE_OBJECT", key));
       }
 
       // 必要なキーの確認
@@ -265,7 +263,7 @@ export default class FireModel {
       requiredKeys.forEach((requiredKey) => {
         if (!(requiredKey in value)) {
           throw new Error(
-            `classPropsのプロパティ '${key}' に '${requiredKey}' が必要です。`
+            getMessage(sender, "CLASS_PROP_REQUIRES_KEY", key, requiredKey)
           );
         }
       });
@@ -273,16 +271,12 @@ export default class FireModel {
       // `type` の確認（指定された型のいずれか）
       const validTypes = [String, Number, Boolean, Object, Array, Function];
       if (!validTypes.includes(value.type)) {
-        throw new Error(
-          `classPropsのプロパティ '${key}' の 'type' は String, Number, Boolean, Object, Array, Function のいずれかである必要があります。`
-        );
+        throw new Error(getMessage(sender, "CLASS_PROP_TYPE_INVALID", key));
       }
 
       // `required` が Boolean であることを確認
       if (typeof value.required !== "boolean") {
-        throw new Error(
-          `classPropsのプロパティ '${key}' の 'required' は Boolean である必要があります。`
-        );
+        throw new Error(getMessage(sender, "CLASS_PROP_REQUIRED_INVALID", key));
       }
     });
 
@@ -297,6 +291,8 @@ export default class FireModel {
    * @returns {void}
    ****************************************************************************/
   #loadCollectionPath() {
+    const sender = `[FireModel.js] - loadCollectionPath`;
+
     if (typeof this.constructor.collectionPath === "undefined") {
       const sample = `
         class SubClass extends Firemodel {
@@ -308,9 +304,7 @@ export default class FireModel {
         }
       `;
       throw new Error(
-        `[FireModel] サブクラスに'collectionPath'が定義されていません。\n${this.removeIndentation(
-          sample
-        )}`
+        getMessage(sender, "NO_COLLECTION_PATH", this.removeIndentation(sample))
       );
     }
     this.#collectionPath = this.constructor.collectionPath;
@@ -324,6 +318,8 @@ export default class FireModel {
    * @returns {void}
    ****************************************************************************/
   #loadHasMany() {
+    const sender = `${this.#collectionPath} - loadHasMany`;
+
     // `hasMany` が未定義の場合は空の配列をセット
     if (typeof this.constructor.hasMany === "undefined") {
       this.#hasMany = [];
@@ -332,9 +328,7 @@ export default class FireModel {
 
     // `hasMany` が配列であることを確認
     if (!Array.isArray(this.constructor.hasMany)) {
-      throw new Error(
-        `[FireModel] 'hasMany' プロパティは配列である必要があります。`
-      );
+      throw new Error(getMessage(sender, "HAS_MANY_NOT_ARRAY"));
     }
 
     // 各要素を検証
@@ -345,9 +339,13 @@ export default class FireModel {
       // 各要素がオブジェクトであることを確認
       if (typeof relation !== "object" || relation === null) {
         throw new Error(
-          `hasManyプロパティの要素はオブジェクトである必要があります。コレクション: ${
-            this.#collectionPath
-          }, インデックス: ${index}, 値: ${JSON.stringify(relation)}`
+          getMessage(
+            sender,
+            "HAS_MANY_MUST_BE_OBJECT",
+            this.#collectionPath,
+            index,
+            JSON.stringify(relation)
+          )
         );
       }
 
@@ -355,9 +353,13 @@ export default class FireModel {
       requiredKeys.forEach((key) => {
         if (!(key in relation)) {
           throw new Error(
-            `hasManyプロパティの要素には'${key}'プロパティが必要です。コレクション: ${
-              this.#collectionPath
-            }, インデックス: ${index}, 値: ${JSON.stringify(relation)}`
+            getMessage(
+              sender,
+              "HAS_MANY_REQUIRES_KEY",
+              this.#collectionPath,
+              index,
+              JSON.stringify(relation)
+            )
           );
         }
       });
@@ -366,9 +368,13 @@ export default class FireModel {
       Object.keys(relation).forEach((key) => {
         if (!requiredKeys.includes(key)) {
           throw new Error(
-            `hasManyプロパティの要素に無効なプロパティ'${key}'が含まれています。コレクション: ${
-              this.#collectionPath
-            }, インデックス: ${index}, 値: ${JSON.stringify(relation)}`
+            getMessage(
+              sender,
+              "HAS_MANY_INVALID_KEY",
+              this.#collectionPath,
+              index,
+              JSON.stringify(relation)
+            )
           );
         }
       });
@@ -376,9 +382,13 @@ export default class FireModel {
       // typeプロパティの値が正しいかを確認
       if (!validTypes.includes(relation.type)) {
         throw new Error(
-          `hasManyプロパティの'type'プロパティには'collection'または'subcollection'のみ使用できます。コレクション: ${
-            this.#collectionPath
-          }, インデックス: ${index}, 値: ${JSON.stringify(relation)}`
+          getMessage(
+            sender,
+            "HAS_MANY_INVALID_TYPE",
+            this.#collectionPath,
+            index,
+            JSON.stringify(relation)
+          )
         );
       }
     });
@@ -395,6 +405,8 @@ export default class FireModel {
    * @returns {void}
    ****************************************************************************/
   #loadUseAutonumber() {
+    const sender = `${this.#collectionPath} - loadUseAutonumber`;
+
     // サブクラスで useAutonumber が未定義の場合、false を設定
     if (typeof this.constructor.useAutonumber === "undefined") {
       this.#useAutonumber = false;
@@ -404,10 +416,12 @@ export default class FireModel {
     // useAutonumber がブール値でない場合、エラーをスロー
     if (typeof this.constructor.useAutonumber !== "boolean") {
       throw new Error(
-        `useAutonumberプロパティはブール値である必要があります。` +
-          `コレクション: ${this.#collectionPath}, 値: ${
-            this.constructor.useAutonumber
-          }`
+        getMessage(
+          sender,
+          "USE_AUTONUMBER_MUST_BE_BOOLEAN",
+          this.#collectionPath,
+          this.constructor.useAutonumber
+        )
       );
     }
 
@@ -423,6 +437,8 @@ export default class FireModel {
    * @returns {void}
    ****************************************************************************/
   #loadLogicalDelete() {
+    const sender = `${this.#collectionPath} - loadLogicalDelete`;
+
     // サブクラスで logicalDelete が未定義の場合、false を設定
     if (typeof this.constructor.logicalDelete === "undefined") {
       this.#logicalDelete = false;
@@ -432,10 +448,12 @@ export default class FireModel {
     // logicalDelete がブール値でない場合、エラーをスロー
     if (typeof this.constructor.logicalDelete !== "boolean") {
       throw new Error(
-        `logicalDeleteプロパティはブール値である必要があります。` +
-          `コレクション: ${this.#collectionPath}, 値: ${
-            this.constructor.logicalDelete
-          }`
+        getMessage(
+          sender,
+          "LOGICAL_DELETE_MUST_BE_BOOLEAN",
+          this.#collectionPath,
+          this.constructor.logicalDelete
+        )
       );
     }
 
@@ -452,6 +470,8 @@ export default class FireModel {
    * @returns {void}
    ****************************************************************************/
   #loadTokenFields() {
+    const sender = `${this.#collectionPath} - loadTokenFields`;
+
     // `tokenFields` が未定義の場合は空の配列をセット
     if (typeof this.constructor.tokenFields === "undefined") {
       this.#tokenFields = [];
@@ -460,18 +480,19 @@ export default class FireModel {
 
     // `tokenFields` が配列であることを確認
     if (!Array.isArray(this.constructor.tokenFields)) {
-      throw new Error(
-        `[FireModel] 'tokenFields' プロパティは配列である必要があります。`
-      );
+      throw new Error(getMessage(sender, "TOKEN_FIELDS_MUST_BE_ARRAY"));
     }
 
     // `tokenFields` の各要素が文字列であることを確認
     this.constructor.tokenFields.forEach((field, index) => {
       if (typeof field !== "string") {
         throw new Error(
-          `tokenFieldsの要素は文字列である必要があります。インデックス: ${index}, 値: ${JSON.stringify(
-            field
-          )}`
+          getMessage(
+            sender,
+            "TOKEN_FIELD_MUST_BE_STRING",
+            index,
+            JSON.stringify(field)
+          )
         );
       }
     });
@@ -507,6 +528,8 @@ export default class FireModel {
    * @throws {Error} 必須プロパティが未設定であるか、バリデーションに失敗した場合
    ****************************************************************************/
   #validateProperties() {
+    const sender = `${this.#collectionPath} - validateProperties`;
+
     Object.keys(this.#classProps).forEach((key) => {
       const propConfig = this.#classProps[key];
       // 必須チェック
@@ -514,12 +537,14 @@ export default class FireModel {
         propConfig.required &&
         (this[key] === undefined || this[key] === null || this[key] === "")
       ) {
-        throw new Error(`${key}は必須です。`);
+        throw new Error(getMessage(sender, "PROP_VALUE_REQUIRED", key));
       }
 
       // バリデーションチェック
       if (propConfig.validator && !propConfig.validator(this[key])) {
-        throw new Error(`${key}の値が無効です: ${this[key]}`);
+        throw new Error(
+          getMessage(sender, "PROP_VALUE_INVALID", key, this[key])
+        );
       }
     });
   }
@@ -925,14 +950,7 @@ export default class FireModel {
       await this.afterCreate();
 
       // 成功メッセージ
-      console.info(
-        getMessage(
-          sender,
-          "CREATE_DOC_SUCCESS",
-          this.#collectionPath,
-          docRef.id
-        )
-      );
+      console.info(getMessage(sender, "CREATE_DOC_SUCCESS", docRef.id));
       return docRef;
     } catch (err) {
       const errorMsg = `Error in ${sender}: ${err.message}`;
@@ -961,18 +979,14 @@ export default class FireModel {
 
       // Autonumberドキュメントが存在しない場合はエラーをスロー
       if (!autonumDoc.exists()) {
-        throw new Error(
-          getMessage(sender, "MISSING_AUTONUMBER", this.#collectionPath)
-        );
+        throw new Error(getMessage(sender, "MISSING_AUTONUMBER"));
       }
 
       const autonumData = autonumDoc.data();
 
       // Autonumberドキュメントのステータスが無効な場合はエラーをスロー
       if (!autonumData.status) {
-        throw new Error(
-          getMessage(sender, "INVALID_AUTONUMBER_STATUS", this.#collectionPath)
-        );
+        throw new Error(getMessage(sender, "INVALID_AUTONUMBER_STATUS"));
       }
 
       // 採番処理
@@ -983,9 +997,7 @@ export default class FireModel {
       // 採番可能な最大値に達した場合はエラーをスロー
       const maxPossibleCode = Array(length + 1).join("0");
       if (newCode === maxPossibleCode) {
-        throw new Error(
-          getMessage(sender, "NO_MORE_DOCUMENT", this.#collectionPath)
-        );
+        throw new Error(getMessage(sender, "NO_MORE_DOCUMENT"));
       }
 
       // itemに新しいコードをセット
@@ -1015,9 +1027,7 @@ export default class FireModel {
     }
 
     // eslint-disable-next-line no-console
-    console.info(
-      getMessage(sender, "FETCH_CALLED", this.#collectionPath, docId)
-    );
+    console.info(getMessage(sender, "FETCH_CALLED", docId));
 
     try {
       const colRef = collection(firestore, this.#collectionPath);
@@ -1052,9 +1062,7 @@ export default class FireModel {
     if (!docId) {
       throw new Error(getMessage(sender, "FETCH_DOC_CALLED_NO_DOCID"));
     }
-    console.info(
-      getMessage(sender, "FETCH_DOC_CALLED", this.#collectionPath, docId)
-    );
+    console.info(getMessage(sender, "FETCH_DOC_CALLED", docId));
     try {
       const colRef = collection(firestore, this.#collectionPath);
       const docRef = doc(colRef, docId).withConverter(this.converter());
@@ -1201,14 +1209,7 @@ export default class FireModel {
 
       // 成功ログ出力
       // eslint-disable-next-line no-console
-      console.info(
-        getMessage(
-          sender,
-          "UPDATE_DOC_SUCCESS",
-          this.#collectionPath,
-          this.docId
-        )
-      );
+      console.info(getMessage(sender, "UPDATE_DOC_SUCCESS", this.docId));
       return docRef;
     } catch (err) {
       const errorMsg = `Error in ${sender}: ${err.message}`;
@@ -1284,12 +1285,7 @@ export default class FireModel {
       const docSnapshot = await getDoc(docRef);
       if (!docSnapshot.exists()) {
         throw new Error(
-          getMessage(
-            sender,
-            "NO_DOCUMENT_TO_DELETE",
-            this.#collectionPath,
-            this.docId
-          )
+          getMessage(sender, "NO_DOCUMENT_TO_DELETE", this.docId)
         );
       }
 
@@ -1325,14 +1321,7 @@ export default class FireModel {
       await this.afterDelete();
 
       // 成功ログ出力
-      console.info(
-        getMessage(
-          sender,
-          "DELETE_DOC_SUCCESS",
-          this.#collectionPath,
-          this.docId
-        )
-      );
+      console.info(getMessage(sender, "DELETE_DOC_SUCCESS", this.docId));
     } catch (err) {
       const errorMsg = `Error in ${sender}: ${err.message}`;
       console.error(errorMsg);
@@ -1352,7 +1341,7 @@ export default class FireModel {
    ****************************************************************************/
   async deleteAll(batchSize = 500, pauseDuration = 500) {
     const sender = `${this.#collectionPath} - deleteAll`;
-    console.info(getMessage(sender, "DELETE_ALL_CALLED", this.#collectionPath));
+    console.info(getMessage(sender, "DELETE_ALL_CALLED"));
     // 引数のバリデーション
     if (typeof batchSize !== "number" || batchSize <= 0) {
       throw new Error(getMessage(sender, "DELETE_ALL_INVALID_BATCH_SIZE"));
@@ -1417,9 +1406,7 @@ export default class FireModel {
       batch.delete(archiveDocRef);
       batch.set(docRef, docSnapshot.data());
       await batch.commit();
-      console.info(
-        getMessage(sender, "RESTORE_SUCCESS", this.#collectionPath, docId)
-      );
+      console.info(getMessage(sender, "RESTORE_SUCCESS", docId));
       return docRef;
     } catch (err) {
       console.error(`[${sender}] ${err.message}`);
@@ -1440,9 +1427,7 @@ export default class FireModel {
     if (this.#listener) {
       this.#listener();
       this.#listener = null;
-      console.info(
-        getMessage(sender, "UNSUBSCRIBE_SUCCESS", this.#collectionPath)
-      );
+      console.info(getMessage(sender, "UNSUBSCRIBE_SUCCESS"));
     }
     this.#items.splice(0);
     /* eslint-enable */
@@ -1459,18 +1444,12 @@ export default class FireModel {
     /* eslint-disable */
     const sender = `${this.#collectionPath} - subscribe`;
     if (!docId) {
-      throw new Error(
-        getMessage(sender, "SUBSCRIBE_CALLED_NO_DOCID", this.#collectionPath)
-      );
+      throw new Error(getMessage(sender, "SUBSCRIBE_CALLED_NO_DOCID"));
     }
-    console.info(
-      getMessage(sender, "SUBSCRIBE_CALLED", this.#collectionPath, docId)
-    );
+    console.info(getMessage(sender, "SUBSCRIBE_CALLED", docId));
     try {
       if (this.#listener) {
-        console.info(
-          getMessage(sender, "LISTENER_HAS_SET", this.#collectionPath)
-        );
+        console.info(getMessage(sender, "LISTENER_HAS_SET"));
         this.unsubscribe();
       }
       const colRef = collection(firestore, this.#collectionPath);
@@ -1482,9 +1461,7 @@ export default class FireModel {
           console.warn(getMessage(sender, "SUBSCRIBE_NO_DOCUMENT", docId));
         }
       });
-      console.info(
-        getMessage(sender, "SUBSCRIBE_SUCCESS", this.#collectionPath, docId)
-      );
+      console.info(getMessage(sender, "SUBSCRIBE_SUCCESS", docId));
     } catch (err) {
       console.error(`[${sender}] ${err.message}`);
       throw err;
@@ -1504,16 +1481,12 @@ export default class FireModel {
     const sender = `${this.#collectionPath} - subscribeDocs`;
 
     // eslint-disable-next-line no-console
-    console.info(
-      getMessage(sender, "SUBSCRIBE_DOCS_CALLED", this.#collectionPath)
-    );
+    console.info(getMessage(sender, "SUBSCRIBE_DOCS_CALLED"));
 
     try {
       if (this.#listener) {
         // eslint-disable-next-line no-console
-        console.info(
-          getMessage(sender, "LISTENER_HAS_SET", this.#collectionPath)
-        );
+        console.info(getMessage(sender, "LISTENER_HAS_SET"));
         this.unsubscribe();
       }
 
@@ -1588,9 +1561,7 @@ export default class FireModel {
       });
 
       // eslint-disable-next-line no-console
-      console.info(
-        getMessage(sender, "SUBSCRIBE_DOCS_SUCCESS", this.#collectionPath)
-      );
+      console.info(getMessage(sender, "SUBSCRIBE_DOCS_SUCCESS"));
 
       return this.#items;
     } catch (err) {
