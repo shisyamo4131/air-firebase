@@ -1,7 +1,6 @@
 import {
   collection,
   collectionGroup,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -10,8 +9,6 @@ import {
   orderBy,
   query,
   runTransaction,
-  setDoc,
-  updateDoc,
   where,
   writeBatch,
 } from "firebase/firestore";
@@ -82,13 +79,19 @@ import { auth, firestore } from "../firebase.init.js";
  * - Firestoreのデータのkeyに使用することができないため、サロゲートペア文字列は除外されます。
  *
  * createメソッド:
- * ‐ ドキュメントを作成するメソッドです。`transaction` 引数を使ったコールバックを利用可能で、サブクラス独自のトランザクション処理を行うことができます。
+ * ‐ ドキュメントを作成するメソッドです。
+ * - トランザクション処理を実行してドキュメントを作成します。
+ * - サブクラス独自のトランザクション処理を行う場合、読み取り処理を先に実行し、`transaction` にトランザクションオブジェクトを与え、書き込みの処理は `callBack` を利用します。
  *
  * updateメソッド:
- * - ドキュメントを更新するメソッドです。`transaction` 引数を使ったコールバックを利用可能で、サブクラス独自のトランザクション処理を行うことができます。
+ * ‐ ドキュメントを更新するメソッドです。
+ * - トランザクション処理を実行してドキュメントを更新します。
+ * - サブクラス独自のトランザクション処理を行う場合、読み取り処理を先に実行し、`transaction` にトランザクションオブジェクトを与え、書き込みの処理は `callBack` を利用します。
  *
  * deleteメソッド:
- * - ドキュメントを削除するメソッドです。`transaction` 引数を使ったコールバックを利用可能で、サブクラス独自のトランザクション処理を行うことができます。
+ * - ドキュメントを削除するメソッドです。
+ * - トランザクション処理を実行してドキュメントを削除します。
+ * - `transaction` 引数を使ったコールバックを利用可能で、サブクラス独自のトランザクション処理を行うことができます。
  * - `logicalDelete` が `true` の場合、ドキュメントは削除されず、`${this.#collectionPath}-archive` コレクションに移動されます。
  *
  * 注意:
@@ -874,30 +877,27 @@ export default class FireModel {
    * Firestore にドキュメントを書き込みます。
    * - `docId` を指定することで、特定のドキュメントIDを使用して作成することが可能です。
    * - `useAutonumber` が true の場合、自動採番を利用します。デフォルトは false です。
-   * - `transaction` に Firestore のトランザクション関数を渡すことで、トランザクション内で複数の処理を行うことができます。
+   * - `transaction` に Firestore のトランザクションオブジェクトを渡すことで、サブクラス側のトランザクション処理を継続します。
+   * - `callBack` は、サブクラス側独自のトランザクション処理を実行するための引数です。
    *
-   * @param {string|null} docId - ドキュメントID（省略可能、デフォルトは `null`）
-   * @param {function|null} transaction - トランザクション処理を行うための関数（省略可能、デフォルトは `null`）
+   * @param {Object} [options={}] - オプション引数
+   * @param {string|null} [options.docId=null] - 作成するドキュメントID。指定しない場合は自動生成されます。
+   * @param {Object|null} [options.transaction=null] - Firestore のトランザクションオブジェクト。指定しない場合は自動トランザクションを使用します。
+   * @param {function|null} [callBack=null] - サブクラス側でトランザクション処理を追加したい場合に指定するコールバック関数。トランザクションオブジェクトが渡されます。
    *
-   * @returns {Promise<DocumentReference>} - 作成された Firestore ドキュメントの参照
-   *
-   * @throws {Error} - ドキュメント作成中にエラーが発生した場合にスローされます。
+   * @returns {Promise<DocumentReference>} - 作成されたドキュメントの参照
+   * @throws {Error} - ドキュメント作成中にエラーが発生した場合
    ****************************************************************************/
-  async create({ docId = null, transaction = null } = {}) {
+  async create({ docId = null, transaction = null } = {}, callBack = null) {
     const sender = `${this.#collectionPath} - create`;
 
     // メッセージ出力
-    if (docId) {
-      // eslint-disable-next-line no-console
-      console.info(getMessage(sender, "CREATE_CALLED", docId));
-    } else {
-      // eslint-disable-next-line no-console
-      console.info(getMessage(sender, "CREATE_CALLED_NO_DOCID"));
-    }
+    const msg = docId ? "CREATE_CALLED" : "CREATE_CALLED_NO_DOCID";
+    console.info(getMessage(sender, msg, docId)); // eslint-disable-line no-console
 
-    // transactionがnull以外の場合は関数であることを確認
-    if (transaction !== null && typeof transaction !== "function") {
-      throw new Error(`[${sender}] 'transaction'は関数である必要があります。`);
+    // callBack が null 以外の場合は関数であることを確認
+    if (callBack !== null && typeof callBack !== "function") {
+      throw new Error(`[${sender}] 'callBack' は関数である必要があります。`);
     }
 
     try {
@@ -910,52 +910,59 @@ export default class FireModel {
         ? doc(colRef, docId).withConverter(this.converter())
         : doc(colRef).withConverter(this.converter());
       this.docId = docRef.id;
+
       await this.beforeCreate();
 
       /**
-       * ドキュメントの作成処理
-       * - `transaction` または `useAutonumber` が指定されている場合はトランザクション処理を行います。
-       * - 上記以外の場合は `setDoc` でシンプルにドキュメントを作成します。
+       * トランザクション処理でドキュメントを作成する関数です。
+       * 1. `#useAutonumber` が true である場合、自動採番を行います。
+       * 2. `callBack` が設定されている場合、これを実行します。
+       * 3. ドキュメントを作成します。
+       * 4. 最後に自動採番を更新します（必要な場合）。
+       * @param {*} txn - Firestore のトランザクションオブジェクト
        */
-      if (transaction || this.#useAutonumber) {
-        await runTransaction(firestore, async (newTransaction) => {
-          if (this.#useAutonumber) {
-            // 自動採番を行い、自動採番を更新するための関数を取得しておく
-            // -> Autonumberドキュメントの読み取りが行われます
-            const updater = await this.#setAutonumber(newTransaction, this);
+      const performTransaction = async (txn) => {
+        try {
+          // 自動採番を行う場合、採番の更新を行う関数を取得
+          const autonumberUpdater = this.#useAutonumber
+            ? await this.#setAutonumber(txn, this)
+            : null;
 
-            // サブクラスから指定されたトランザクション処理を行う
-            // サブクラスのトランザクション処理は読み取り -> 書き込みの順で行われなければなりません。
-            if (transaction) await transaction(newTransaction, this.toObject());
+          // サブクラスからのトランザクション処理がある場合に実行
+          if (callBack) await callBack(txn, this.toObject());
 
-            // ドキュメントを作成
-            newTransaction.set(docRef, this);
+          // ドキュメントを作成
+          txn.set(docRef, this);
 
-            // 自動採番を更新
-            await updater();
-          } else {
-            // サブクラスから指定されたトランザクション処理を行う
-            if (transaction) await transaction(newTransaction, this);
+          // 自動採番の更新が必要な場合は実行
+          if (autonumberUpdater) await autonumberUpdater();
+        } catch (error) {
+          // トランザクション処理中にエラーが発生した場合の処理
+          console.error(
+            `[performTransaction] トランザクション中にエラーが発生しました: ${error.message}`
+          );
+          throw new Error(
+            `トランザクション中にエラーが発生しました: ${error.message}`
+          );
+        }
+      };
 
-            // ドキュメントを作成
-            newTransaction.set(docRef, this);
-          }
-        });
+      // 'transaction' の有無に応じて処理を分岐
+      if (transaction) {
+        await performTransaction(transaction);
       } else {
-        // 自動採番が不要でトランザクションも不要な場合のドキュメント作成
-        await setDoc(docRef, this);
+        await runTransaction(firestore, performTransaction);
       }
 
       // ドキュメント作成後の処理
       await this.afterCreate();
 
       // 成功メッセージ
-      console.info(getMessage(sender, "CREATE_DOC_SUCCESS", docRef.id));
+      console.info(getMessage(sender, "CREATE_DOC_SUCCESS", docRef.id)); // eslint-disable-line no-console
       return docRef;
     } catch (err) {
       const errorMsg = `Error in ${sender}: ${err.message}`;
-      // eslint-disable-next-line no-console
-      console.error(errorMsg);
+      console.error(errorMsg); // eslint-disable-line no-console
       throw new Error(errorMsg);
     }
   }
@@ -1159,21 +1166,19 @@ export default class FireModel {
    * - Firestore の `updateDoc` メソッドは `withConverter` をサポートしていないため、 `toObject()` を使用してオブジェクト形式に変換します。
    *
    * @param {function|null} transaction - トランザクション処理を行うための関数（省略可能、デフォルトは `null`）
-   *
+   * @param {function|null} callBack - サブクラス側で独自の処理を実行するための関数（省略可能、デフォルトは `null`）
    * @returns {Promise<DocumentReference>} - 更新された Firestore ドキュメントの参照を返します。
-   *
    * @throws {Error} - ドキュメント更新中にエラーが発生した場合にスローされます。
    ****************************************************************************/
-  async update({ transaction = null } = {}) {
+  async update({ transaction = null } = {}, callBack = null) {
     const sender = `${this.#collectionPath} - update`;
 
     // 更新呼び出しのログ出力
-    // eslint-disable-next-line no-console
-    console.info(getMessage(sender, "UPDATE_CALLED", this.docId));
+    console.info(getMessage(sender, "UPDATE_CALLED", this.docId)); // eslint-disable-line no-console
 
-    // transactionがnull以外の場合は関数であることを確認
-    if (transaction !== null && typeof transaction !== "function") {
-      throw new Error(`[${sender}] 'transaction'は関数である必要があります。`);
+    // callBackがnull以外の場合は関数であることを確認
+    if (callBack !== null && typeof callBack !== "function") {
+      throw new Error(`[${sender}] 'callBack'は関数である必要があります。`);
     }
 
     try {
@@ -1192,72 +1197,108 @@ export default class FireModel {
       this.updateAt = new Date();
       this.uid = auth?.currentUser?.uid || "unknown";
 
+      /**
+       * トランザクション処理でドキュメントを更新する関数です。
+       * 1. 更新対象のドキュメントが存在するかを確認します。
+       * 2. `callBack` が設定されている場合、これを実行します。
+       * 3. 最後にドキュメントを更新します。
+       * @param {*} txn - Firestore のトランザクションオブジェクト
+       */
+      const performTransaction = async (txn) => {
+        try {
+          const docSnapshot = await txn.get(docRef);
+          if (!docSnapshot.exists) {
+            throw new Error(
+              `[${sender}] 更新対象のドキュメントが存在しません。ドキュメントIDは ${this.docId} です。`
+            );
+          }
+          if (callBack) await callBack(txn, this.toObject());
+          txn.update(docRef, this.toObject());
+        } catch (error) {
+          // eslint-disable-next-line
+          console.error(
+            `[performTransaction] トランザクション中にエラーが発生しました: ${error.message}`
+          );
+          throw new Error(
+            `トランザクション中にエラーが発生しました: ${error.message}`
+          );
+        }
+      };
+
       // ドキュメントの更新処理
       if (transaction) {
-        await runTransaction(firestore, async (newTransaction) => {
-          // トランザクション処理の実行
-          await transaction(newTransaction, this);
-          // ドキュメントを更新
-          newTransaction.update(docRef, this.toObject());
-        });
+        await performTransaction(transaction);
       } else {
-        await updateDoc(docRef, this.toObject());
+        await runTransaction(firestore, performTransaction);
       }
 
       // 更新後処理
       await this.afterUpdate();
 
       // 成功ログ出力
-      // eslint-disable-next-line no-console
-      console.info(getMessage(sender, "UPDATE_DOC_SUCCESS", this.docId));
+      console.info(getMessage(sender, "UPDATE_DOC_SUCCESS", this.docId)); // eslint-disable-line no-console
       return docRef;
     } catch (err) {
       const errorMsg = `Error in ${sender}: ${err.message}`;
-      // eslint-disable-next-line no-console
-      console.error(errorMsg);
+      console.error(errorMsg); // eslint-disable-line no-console
       throw new Error(errorMsg);
     }
   }
 
   /****************************************************************************
-   * `hasMany`プロパティにセットされた条件に基づいて、当該クラスに読み込まれているドキュメントデータに
-   * 依存している子ドキュメントが存在しているかどうかを返します。
-   * @returns {Promise<object|boolean>} - 子ドキュメントが存在する場合は`hasMany`の該当項目を返し、存在しない場合は`false`を返します。
+   * `hasMany` プロパティにセットされた条件に基づき、現在のドキュメントに依存している子ドキュメントが
+   * 存在しているかどうかを確認します。
+   *
+   * @returns {Promise<object|boolean>} - 子ドキュメントが存在する場合は `hasMany` の該当項目を返し、
+   *                                      存在しない場合は `false` を返します。
+   * @throws {Error} - Firestore の操作中にエラーが発生した場合にスローされます。
    ****************************************************************************/
   async hasChild() {
-    for (const item of this.#hasMany) {
-      const colRef =
-        item.type === "collection"
-          ? collection(firestore, item.collection)
-          : collectionGroup(firestore, item.collection);
+    try {
+      for (const item of this.#hasMany) {
+        // コレクションまたはコレクショングループの参照を取得
+        const colRef =
+          item.type === "collection"
+            ? collection(firestore, item.collection)
+            : collectionGroup(firestore, item.collection);
 
-      const whrObj = where(item.field, item.condition, this.docId);
-      const q = query(colRef, whrObj, limit(1));
-      const snapshot = await getDocs(q);
+        // クエリを作成
+        const whrObj = where(item.field, item.condition, this.docId);
+        const q = query(colRef, whrObj, limit(1));
 
-      if (!snapshot.empty) return item;
+        // トランザクションの有無に応じてクエリを実行
+        const snapshot = await getDocs(q);
+
+        // 子ドキュメントが存在する場合、該当の `hasMany` アイテムを返す
+        if (!snapshot.empty) return item;
+      }
+
+      // 子ドキュメントが存在しない場合は `false` を返す
+      return false;
+    } catch (error) {
+      console.error(`Error in hasChild: ${error.message}`); // eslint-disable-line no-console
+      throw new Error(`Error checking for child documents: ${error.message}`);
     }
-
-    return false;
   }
 
   /****************************************************************************
    * 現在のドキュメントIDに該当するドキュメントを削除します。
-   * - `logicalDelete`が指定されている場合、削除されたドキュメントはarchiveコレクションに移動されます。
+   * - `logicalDelete`が指定されている場合、削除されたドキュメントは`archive`コレクションに移動されます。
    * - `transaction`が指定されている場合は`deleteAsTransaction`を呼び出します。
    * @param {object|null} transaction - Firestoreトランザクションオブジェクト（省略可能）
+   * @param {function|null} callBack - サブクラス側で独自の処理を実行するための関数（省略可能）
    * @returns {Promise<void>} - 削除が完了すると解決されるPromise
    * @throws {Error} - ドキュメントの削除中にエラーが発生した場合にスローされます
    ****************************************************************************/
-  async delete({ transaction = null } = {}) {
+  async delete({ transaction = null } = {}, callBack = null) {
     const sender = `${this.#collectionPath} - delete`;
 
     // 削除処理のログを出力
-    console.info(getMessage(sender, "DELETE_CALLED", this.docId));
+    console.info(getMessage(sender, "DELETE_CALLED", this.docId)); // eslint-disable-line no-console
 
-    // transactionがnull以外の場合は関数であることを確認
-    if (transaction !== null && typeof transaction !== "function") {
-      throw new Error(`[${sender}] 'transaction'は関数である必要があります。`);
+    // callBackがnull以外の場合は関数であることを確認
+    if (callBack !== null && typeof callBack !== "function") {
+      throw new Error(`[${sender}] 'callBack'は関数である必要があります。`);
     }
 
     try {
@@ -1266,65 +1307,68 @@ export default class FireModel {
         throw new Error(getMessage(sender, "DELETE_REQUIRES_DOCID"));
       }
 
-      // 子ドキュメントが存在する場合のエラー処理
-      const hasChild = await this.hasChild();
-      if (hasChild) {
-        throw new Error(
-          getMessage(
-            sender,
-            "COULD_NOT_DELETE_CHILD_EXIST",
-            hasChild.collection
-          )
-        );
-      }
-
       const colRef = collection(firestore, this.#collectionPath);
       const docRef = doc(colRef, this.docId);
-
-      // ドキュメントの存在確認
-      const docSnapshot = await getDoc(docRef);
-      if (!docSnapshot.exists()) {
-        throw new Error(
-          getMessage(sender, "NO_DOCUMENT_TO_DELETE", this.docId)
-        );
-      }
 
       // 削除前処理
       await this.beforeDelete();
 
-      // トランザクションまたは論理削除が指定されている場合の処理
-      if (transaction || this.#logicalDelete) {
-        await runTransaction(firestore, async (newTransaction) => {
-          if (transaction) {
-            await transaction(newTransaction, this);
-          }
-          if (this.#logicalDelete) {
-            // 論理削除：archiveコレクションに移動し、元のドキュメントを削除
-            const archiveColRef = collection(
-              firestore,
-              `${this.#collectionPath}_archive`
-            );
-            const archiveDocRef = doc(archiveColRef, this.docId);
-            newTransaction.set(archiveDocRef, docSnapshot.data());
-            newTransaction.delete(docRef);
-          } else {
-            // 物理削除
-            newTransaction.delete(docRef);
-          }
-        });
+      /**
+       * トランザクションでドキュメントを削除する関数です。
+       * @param {object} txn - Firestoreトランザクションオブジェクト
+       */
+      const performTransaction = async (txn) => {
+        const docSnapshot = await txn.get(docRef);
+        if (!docSnapshot.exists()) {
+          throw new Error(
+            getMessage(sender, "NO_DOCUMENT_TO_DELETE", this.docId)
+          );
+        }
+
+        // 子ドキュメントが存在する場合のエラー処理
+        const hasChild = await this.hasChild();
+        if (hasChild) {
+          throw new Error(
+            getMessage(
+              sender,
+              "COULD_NOT_DELETE_CHILD_EXIST",
+              hasChild.collection
+            )
+          );
+        }
+
+        // サブクラスでの追加処理を実行
+        if (callBack) await callBack(txn, this.toObject());
+
+        if (this.#logicalDelete) {
+          // 論理削除：archiveコレクションに移動し、元のドキュメントを削除
+          const archiveColRef = collection(
+            firestore,
+            `${this.#collectionPath}_archive`
+          );
+          const archiveDocRef = doc(archiveColRef, this.docId);
+          txn.set(archiveDocRef, docSnapshot.data());
+        }
+
+        // 元のドキュメントを削除（物理削除または論理削除後）
+        txn.delete(docRef);
+      };
+
+      // ドキュメントの削除処理
+      if (transaction) {
+        await performTransaction(transaction);
       } else {
-        // 通常の物理削除
-        await deleteDoc(docRef);
+        await runTransaction(firestore, performTransaction);
       }
 
       // 削除後処理
       await this.afterDelete();
 
       // 成功ログ出力
-      console.info(getMessage(sender, "DELETE_DOC_SUCCESS", this.docId));
+      console.info(getMessage(sender, "DELETE_DOC_SUCCESS", this.docId)); // eslint-disable-line no-console
     } catch (err) {
       const errorMsg = `Error in ${sender}: ${err.message}`;
-      console.error(errorMsg);
+      console.error(errorMsg); // eslint-disable-line no-console
       throw new Error(errorMsg);
     }
   }
