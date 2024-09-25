@@ -1206,12 +1206,6 @@ export default class FireModel {
        */
       const performTransaction = async (txn) => {
         try {
-          const docSnapshot = await txn.get(docRef);
-          if (!docSnapshot.exists) {
-            throw new Error(
-              `[${sender}] 更新対象のドキュメントが存在しません。ドキュメントIDは ${this.docId} です。`
-            );
-          }
           if (callBack) await callBack(txn, this.toObject());
           txn.update(docRef, this.toObject());
         } catch (error) {
@@ -1318,13 +1312,6 @@ export default class FireModel {
        * @param {object} txn - Firestoreトランザクションオブジェクト
        */
       const performTransaction = async (txn) => {
-        const docSnapshot = await txn.get(docRef);
-        if (!docSnapshot.exists()) {
-          throw new Error(
-            getMessage(sender, "NO_DOCUMENT_TO_DELETE", this.docId)
-          );
-        }
-
         // 子ドキュメントが存在する場合のエラー処理
         const hasChild = await this.hasChild();
         if (hasChild) {

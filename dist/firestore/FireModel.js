@@ -104,13 +104,16 @@ function _assertClassBrand(e, t, n) { if ("function" == typeof e ? e === t : e.h
  * ‐ ドキュメントを作成するメソッドです。
  * - トランザクション処理を実行してドキュメントを作成します。
  * - サブクラス独自のトランザクション処理を行う場合、読み取り処理を先に実行し、`transaction` にトランザクションオブジェクトを与え、書き込みの処理は `callBack` を利用します。
- * - `callBack` を利用してサブクラス独自のトランザクション処理を行うことができます。
  *
  * updateメソッド:
- * - ドキュメントを更新するメソッドです。`transaction` 引数を使ったコールバックを利用可能で、サブクラス独自のトランザクション処理を行うことができます。
+ * ‐ ドキュメントを更新するメソッドです。
+ * - トランザクション処理を実行してドキュメントを更新します。
+ * - サブクラス独自のトランザクション処理を行う場合、読み取り処理を先に実行し、`transaction` にトランザクションオブジェクトを与え、書き込みの処理は `callBack` を利用します。
  *
  * deleteメソッド:
- * - ドキュメントを削除するメソッドです。`transaction` 引数を使ったコールバックを利用可能で、サブクラス独自のトランザクション処理を行うことができます。
+ * - ドキュメントを削除するメソッドです。
+ * - トランザクション処理を実行してドキュメントを削除します。
+ * - `transaction` 引数を使ったコールバックを利用可能で、サブクラス独自のトランザクション処理を行うことができます。
  * - `logicalDelete` が `true` の場合、ドキュメントは削除されず、`${this.#collectionPath}-archive` コレクションに移動されます。
  *
  * 注意:
@@ -784,7 +787,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
           sender,
           colRef,
           docRef,
-          docSnapshot,
+          _docSnapshot,
           _args3 = arguments;
         return _regeneratorRuntime().wrap(function _callee3$(_context3) {
           while (1) switch (_context3.prev = _context3.next) {
@@ -805,8 +808,8 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
               _context3.next = 10;
               return (0, _firestore.getDoc)(docRef);
             case 10:
-              docSnapshot = _context3.sent;
-              if (docSnapshot.exists()) {
+              _docSnapshot = _context3.sent;
+              if (_docSnapshot.exists()) {
                 _context3.next = 14;
                 break;
               }
@@ -814,7 +817,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
               console.warn((0, _firestoreMessages.getMessage)(sender, "FETCH_NO_DOCUMENT", docId));
               return _context3.abrupt("return", false);
             case 14:
-              this.initialize(docSnapshot.data());
+              this.initialize(_docSnapshot.data());
               // eslint-disable-next-line no-console
               console.info((0, _firestoreMessages.getMessage)(sender, "FETCH_SUCCESS"));
               return _context3.abrupt("return", true);
@@ -851,7 +854,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
           sender,
           colRef,
           docRef,
-          docSnapshot,
+          _docSnapshot2,
           _args4 = arguments;
         return _regeneratorRuntime().wrap(function _callee4$(_context4) {
           while (1) switch (_context4.prev = _context4.next) {
@@ -872,8 +875,8 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
               _context4.next = 10;
               return (0, _firestore.getDoc)(docRef);
             case 10:
-              docSnapshot = _context4.sent;
-              if (docSnapshot.exists()) {
+              _docSnapshot2 = _context4.sent;
+              if (_docSnapshot2.exists()) {
                 _context4.next = 14;
                 break;
               }
@@ -881,7 +884,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
               return _context4.abrupt("return", null);
             case 14:
               console.info((0, _firestoreMessages.getMessage)(sender, "FETCH_DOC_SUCCESS"));
-              return _context4.abrupt("return", docSnapshot.data());
+              return _context4.abrupt("return", _docSnapshot2.data());
             case 18:
               _context4.prev = 18;
               _context4.t0 = _context4["catch"](5);
@@ -1055,42 +1058,31 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
                */
               performTransaction = /*#__PURE__*/function () {
                 var _ref6 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee6(txn) {
-                  var docSnapshot;
                   return _regeneratorRuntime().wrap(function _callee6$(_context6) {
                     while (1) switch (_context6.prev = _context6.next) {
                       case 0:
                         _context6.prev = 0;
-                        _context6.next = 3;
-                        return txn.get(docRef);
-                      case 3:
-                        docSnapshot = _context6.sent;
-                        if (docSnapshot.exists) {
-                          _context6.next = 6;
-                          break;
-                        }
-                        throw new Error("[".concat(sender, "] \u66F4\u65B0\u5BFE\u8C61\u306E\u30C9\u30AD\u30E5\u30E1\u30F3\u30C8\u304C\u5B58\u5728\u3057\u307E\u305B\u3093\u3002\u30C9\u30AD\u30E5\u30E1\u30F3\u30C8ID\u306F ").concat(_this7.docId, " \u3067\u3059\u3002"));
-                      case 6:
                         if (!callBack) {
-                          _context6.next = 9;
+                          _context6.next = 4;
                           break;
                         }
-                        _context6.next = 9;
+                        _context6.next = 4;
                         return callBack(txn, _this7.toObject());
-                      case 9:
+                      case 4:
                         txn.update(docRef, _this7.toObject());
-                        _context6.next = 16;
+                        _context6.next = 11;
                         break;
-                      case 12:
-                        _context6.prev = 12;
+                      case 7:
+                        _context6.prev = 7;
                         _context6.t0 = _context6["catch"](0);
                         // eslint-disable-next-line
                         console.error("[performTransaction] \u30C8\u30E9\u30F3\u30B6\u30AF\u30B7\u30E7\u30F3\u4E2D\u306B\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F: ".concat(_context6.t0.message));
                         throw new Error("\u30C8\u30E9\u30F3\u30B6\u30AF\u30B7\u30E7\u30F3\u4E2D\u306B\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F: ".concat(_context6.t0.message));
-                      case 16:
+                      case 11:
                       case "end":
                         return _context6.stop();
                     }
-                  }, _callee6, null, [[0, 12]]);
+                  }, _callee6, null, [[0, 7]]);
                 }));
                 return function performTransaction(_x2) {
                   return _ref6.apply(this, arguments);
@@ -1262,37 +1254,27 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
                */
               performTransaction = /*#__PURE__*/function () {
                 var _ref8 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee9(txn) {
-                  var docSnapshot, hasChild, archiveColRef, archiveDocRef;
+                  var hasChild, archiveColRef, archiveDocRef;
                   return _regeneratorRuntime().wrap(function _callee9$(_context9) {
                     while (1) switch (_context9.prev = _context9.next) {
                       case 0:
                         _context9.next = 2;
-                        return txn.get(docRef);
+                        return _this8.hasChild();
                       case 2:
-                        docSnapshot = _context9.sent;
-                        if (docSnapshot.exists()) {
+                        hasChild = _context9.sent;
+                        if (!hasChild) {
                           _context9.next = 5;
                           break;
                         }
-                        throw new Error((0, _firestoreMessages.getMessage)(sender, "NO_DOCUMENT_TO_DELETE", _this8.docId));
-                      case 5:
-                        _context9.next = 7;
-                        return _this8.hasChild();
-                      case 7:
-                        hasChild = _context9.sent;
-                        if (!hasChild) {
-                          _context9.next = 10;
-                          break;
-                        }
                         throw new Error((0, _firestoreMessages.getMessage)(sender, "COULD_NOT_DELETE_CHILD_EXIST", hasChild.collection));
-                      case 10:
+                      case 5:
                         if (!callBack) {
-                          _context9.next = 13;
+                          _context9.next = 8;
                           break;
                         }
-                        _context9.next = 13;
+                        _context9.next = 8;
                         return callBack(txn, _this8.toObject());
-                      case 13:
+                      case 8:
                         if (_classPrivateFieldGet(_logicalDelete, _this8)) {
                           // 論理削除：archiveコレクションに移動し、元のドキュメントを削除
                           archiveColRef = (0, _firestore.collection)(_firebaseInit.firestore, "".concat(_classPrivateFieldGet(_collectionPath, _this8), "_archive"));
@@ -1302,7 +1284,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
 
                         // 元のドキュメントを削除（物理削除または論理削除後）
                         txn["delete"](docRef);
-                      case 15:
+                      case 10:
                       case "end":
                         return _context9.stop();
                     }
@@ -1472,7 +1454,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
     key: "restore",
     value: (function () {
       var _restore = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee12(docId) {
-        var sender, archivePath, archiveColRef, archiveDocRef, docSnapshot, colRef, docRef, batch;
+        var sender, archivePath, archiveColRef, archiveDocRef, _docSnapshot3, colRef, docRef, batch;
         return _regeneratorRuntime().wrap(function _callee12$(_context13) {
           while (1) switch (_context13.prev = _context13.next) {
             case 0:
@@ -1493,8 +1475,8 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
               _context13.next = 12;
               return (0, _firestore.getDoc)(archiveDocRef);
             case 12:
-              docSnapshot = _context13.sent;
-              if (docSnapshot.exists()) {
+              _docSnapshot3 = _context13.sent;
+              if (_docSnapshot3.exists()) {
                 _context13.next = 15;
                 break;
               }
@@ -1504,7 +1486,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
               docRef = (0, _firestore.doc)(colRef, docId);
               batch = (0, _firestore.writeBatch)(_firebaseInit.firestore);
               batch["delete"](archiveDocRef);
-              batch.set(docRef, docSnapshot.data());
+              batch.set(docRef, _docSnapshot3.data());
               _context13.next = 22;
               return batch.commit();
             case 22:
