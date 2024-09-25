@@ -279,7 +279,9 @@ export default class FireModel {
 
       // `required` が Boolean であることを確認
       if (typeof value.required !== "boolean") {
-        throw new Error(getMessage(sender, "CLASS_PROP_REQUIRED_INVALID", key));
+        throw new TypeError(
+          getMessage(sender, "CLASS_PROP_REQUIRED_INVALID", key)
+        );
       }
     });
 
@@ -331,7 +333,7 @@ export default class FireModel {
 
     // `hasMany` が配列であることを確認
     if (!Array.isArray(this.constructor.hasMany)) {
-      throw new Error(getMessage(sender, "HAS_MANY_NOT_ARRAY"));
+      throw new TypeError(getMessage(sender, "HAS_MANY_NOT_ARRAY"));
     }
 
     // 各要素を検証
@@ -418,7 +420,7 @@ export default class FireModel {
 
     // useAutonumber がブール値でない場合、エラーをスロー
     if (typeof this.constructor.useAutonumber !== "boolean") {
-      throw new Error(
+      throw new TypeError(
         getMessage(
           sender,
           "USE_AUTONUMBER_MUST_BE_BOOLEAN",
@@ -450,7 +452,7 @@ export default class FireModel {
 
     // logicalDelete がブール値でない場合、エラーをスロー
     if (typeof this.constructor.logicalDelete !== "boolean") {
-      throw new Error(
+      throw new TypeError(
         getMessage(
           sender,
           "LOGICAL_DELETE_MUST_BE_BOOLEAN",
@@ -483,13 +485,13 @@ export default class FireModel {
 
     // `tokenFields` が配列であることを確認
     if (!Array.isArray(this.constructor.tokenFields)) {
-      throw new Error(getMessage(sender, "TOKEN_FIELDS_MUST_BE_ARRAY"));
+      throw new TypeError(getMessage(sender, "TOKEN_FIELDS_MUST_BE_ARRAY"));
     }
 
     // `tokenFields` の各要素が文字列であることを確認
     this.constructor.tokenFields.forEach((field, index) => {
       if (typeof field !== "string") {
-        throw new Error(
+        throw new TypeError(
           getMessage(
             sender,
             "TOKEN_FIELD_MUST_BE_STRING",
@@ -1324,6 +1326,14 @@ export default class FireModel {
           );
         }
 
+        const docSnapshot = await getDoc(docRef);
+        if (!docSnapshot.exists()) {
+          throw new Error(
+            getMessage(sender, "NO_DOCUMENT_TO_DELETE", this.docId)
+          );
+        }
+        const sourceData = docSnapshot.data();
+
         // サブクラスでの追加処理を実行
         if (callBack) await callBack(txn, this.toObject());
 
@@ -1334,7 +1344,7 @@ export default class FireModel {
             `${this.#collectionPath}_archive`
           );
           const archiveDocRef = doc(archiveColRef, this.docId);
-          txn.set(archiveDocRef, docSnapshot.data());
+          txn.set(archiveDocRef, sourceData);
         }
 
         // 元のドキュメントを削除（物理削除または論理削除後）
