@@ -7,22 +7,25 @@ exports["default"] = void 0;
 var _firestore = require("firebase/firestore");
 var _firestoreMessages = require("./firestore-messages.js");
 var _firebaseInit = require("../firebase.init.js");
+function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
+function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
+function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
 function _createForOfIteratorHelper(r, e) { var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (!t) { if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) { t && (r = t); var _n = 0, F = function F() {}; return { s: F, n: function n() { return _n >= r.length ? { done: !0 } : { done: !1, value: r[_n++] }; }, e: function e(r) { throw r; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var o, a = !0, u = !1; return { s: function s() { t = t.call(r); }, n: function n() { var r = t.next(); return a = r.done, r; }, e: function e(r) { u = !0, o = r; }, f: function f() { try { a || null == t["return"] || t["return"](); } finally { if (u) throw o; } } }; }
 function _toArray(r) { return _arrayWithHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableRest(); }
-function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
-function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
 function _regeneratorRuntime() { "use strict"; /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/facebook/regenerator/blob/main/LICENSE */ _regeneratorRuntime = function _regeneratorRuntime() { return e; }; var t, e = {}, r = Object.prototype, n = r.hasOwnProperty, o = Object.defineProperty || function (t, e, r) { t[e] = r.value; }, i = "function" == typeof Symbol ? Symbol : {}, a = i.iterator || "@@iterator", c = i.asyncIterator || "@@asyncIterator", u = i.toStringTag || "@@toStringTag"; function define(t, e, r) { return Object.defineProperty(t, e, { value: r, enumerable: !0, configurable: !0, writable: !0 }), t[e]; } try { define({}, ""); } catch (t) { define = function define(t, e, r) { return t[e] = r; }; } function wrap(t, e, r, n) { var i = e && e.prototype instanceof Generator ? e : Generator, a = Object.create(i.prototype), c = new Context(n || []); return o(a, "_invoke", { value: makeInvokeMethod(t, r, c) }), a; } function tryCatch(t, e, r) { try { return { type: "normal", arg: t.call(e, r) }; } catch (t) { return { type: "throw", arg: t }; } } e.wrap = wrap; var h = "suspendedStart", l = "suspendedYield", f = "executing", s = "completed", y = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} var p = {}; define(p, a, function () { return this; }); var d = Object.getPrototypeOf, v = d && d(d(values([]))); v && v !== r && n.call(v, a) && (p = v); var g = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(p); function defineIteratorMethods(t) { ["next", "throw", "return"].forEach(function (e) { define(t, e, function (t) { return this._invoke(e, t); }); }); } function AsyncIterator(t, e) { function invoke(r, o, i, a) { var c = tryCatch(t[r], t, o); if ("throw" !== c.type) { var u = c.arg, h = u.value; return h && "object" == _typeof(h) && n.call(h, "__await") ? e.resolve(h.__await).then(function (t) { invoke("next", t, i, a); }, function (t) { invoke("throw", t, i, a); }) : e.resolve(h).then(function (t) { u.value = t, i(u); }, function (t) { return invoke("throw", t, i, a); }); } a(c.arg); } var r; o(this, "_invoke", { value: function value(t, n) { function callInvokeWithMethodAndArg() { return new e(function (e, r) { invoke(t, n, e, r); }); } return r = r ? r.then(callInvokeWithMethodAndArg, callInvokeWithMethodAndArg) : callInvokeWithMethodAndArg(); } }); } function makeInvokeMethod(e, r, n) { var o = h; return function (i, a) { if (o === f) throw Error("Generator is already running"); if (o === s) { if ("throw" === i) throw a; return { value: t, done: !0 }; } for (n.method = i, n.arg = a;;) { var c = n.delegate; if (c) { var u = maybeInvokeDelegate(c, n); if (u) { if (u === y) continue; return u; } } if ("next" === n.method) n.sent = n._sent = n.arg;else if ("throw" === n.method) { if (o === h) throw o = s, n.arg; n.dispatchException(n.arg); } else "return" === n.method && n.abrupt("return", n.arg); o = f; var p = tryCatch(e, r, n); if ("normal" === p.type) { if (o = n.done ? s : l, p.arg === y) continue; return { value: p.arg, done: n.done }; } "throw" === p.type && (o = s, n.method = "throw", n.arg = p.arg); } }; } function maybeInvokeDelegate(e, r) { var n = r.method, o = e.iterator[n]; if (o === t) return r.delegate = null, "throw" === n && e.iterator["return"] && (r.method = "return", r.arg = t, maybeInvokeDelegate(e, r), "throw" === r.method) || "return" !== n && (r.method = "throw", r.arg = new TypeError("The iterator does not provide a '" + n + "' method")), y; var i = tryCatch(o, e.iterator, r.arg); if ("throw" === i.type) return r.method = "throw", r.arg = i.arg, r.delegate = null, y; var a = i.arg; return a ? a.done ? (r[e.resultName] = a.value, r.next = e.nextLoc, "return" !== r.method && (r.method = "next", r.arg = t), r.delegate = null, y) : a : (r.method = "throw", r.arg = new TypeError("iterator result is not an object"), r.delegate = null, y); } function pushTryEntry(t) { var e = { tryLoc: t[0] }; 1 in t && (e.catchLoc = t[1]), 2 in t && (e.finallyLoc = t[2], e.afterLoc = t[3]), this.tryEntries.push(e); } function resetTryEntry(t) { var e = t.completion || {}; e.type = "normal", delete e.arg, t.completion = e; } function Context(t) { this.tryEntries = [{ tryLoc: "root" }], t.forEach(pushTryEntry, this), this.reset(!0); } function values(e) { if (e || "" === e) { var r = e[a]; if (r) return r.call(e); if ("function" == typeof e.next) return e; if (!isNaN(e.length)) { var o = -1, i = function next() { for (; ++o < e.length;) if (n.call(e, o)) return next.value = e[o], next.done = !1, next; return next.value = t, next.done = !0, next; }; return i.next = i; } } throw new TypeError(_typeof(e) + " is not iterable"); } return GeneratorFunction.prototype = GeneratorFunctionPrototype, o(g, "constructor", { value: GeneratorFunctionPrototype, configurable: !0 }), o(GeneratorFunctionPrototype, "constructor", { value: GeneratorFunction, configurable: !0 }), GeneratorFunction.displayName = define(GeneratorFunctionPrototype, u, "GeneratorFunction"), e.isGeneratorFunction = function (t) { var e = "function" == typeof t && t.constructor; return !!e && (e === GeneratorFunction || "GeneratorFunction" === (e.displayName || e.name)); }, e.mark = function (t) { return Object.setPrototypeOf ? Object.setPrototypeOf(t, GeneratorFunctionPrototype) : (t.__proto__ = GeneratorFunctionPrototype, define(t, u, "GeneratorFunction")), t.prototype = Object.create(g), t; }, e.awrap = function (t) { return { __await: t }; }, defineIteratorMethods(AsyncIterator.prototype), define(AsyncIterator.prototype, c, function () { return this; }), e.AsyncIterator = AsyncIterator, e.async = function (t, r, n, o, i) { void 0 === i && (i = Promise); var a = new AsyncIterator(wrap(t, r, n, o), i); return e.isGeneratorFunction(r) ? a : a.next().then(function (t) { return t.done ? t.value : a.next(); }); }, defineIteratorMethods(g), define(g, u, "Generator"), define(g, a, function () { return this; }), define(g, "toString", function () { return "[object Generator]"; }), e.keys = function (t) { var e = Object(t), r = []; for (var n in e) r.push(n); return r.reverse(), function next() { for (; r.length;) { var t = r.pop(); if (t in e) return next.value = t, next.done = !1, next; } return next.done = !0, next; }; }, e.values = values, Context.prototype = { constructor: Context, reset: function reset(e) { if (this.prev = 0, this.next = 0, this.sent = this._sent = t, this.done = !1, this.delegate = null, this.method = "next", this.arg = t, this.tryEntries.forEach(resetTryEntry), !e) for (var r in this) "t" === r.charAt(0) && n.call(this, r) && !isNaN(+r.slice(1)) && (this[r] = t); }, stop: function stop() { this.done = !0; var t = this.tryEntries[0].completion; if ("throw" === t.type) throw t.arg; return this.rval; }, dispatchException: function dispatchException(e) { if (this.done) throw e; var r = this; function handle(n, o) { return a.type = "throw", a.arg = e, r.next = n, o && (r.method = "next", r.arg = t), !!o; } for (var o = this.tryEntries.length - 1; o >= 0; --o) { var i = this.tryEntries[o], a = i.completion; if ("root" === i.tryLoc) return handle("end"); if (i.tryLoc <= this.prev) { var c = n.call(i, "catchLoc"), u = n.call(i, "finallyLoc"); if (c && u) { if (this.prev < i.catchLoc) return handle(i.catchLoc, !0); if (this.prev < i.finallyLoc) return handle(i.finallyLoc); } else if (c) { if (this.prev < i.catchLoc) return handle(i.catchLoc, !0); } else { if (!u) throw Error("try statement without catch or finally"); if (this.prev < i.finallyLoc) return handle(i.finallyLoc); } } } }, abrupt: function abrupt(t, e) { for (var r = this.tryEntries.length - 1; r >= 0; --r) { var o = this.tryEntries[r]; if (o.tryLoc <= this.prev && n.call(o, "finallyLoc") && this.prev < o.finallyLoc) { var i = o; break; } } i && ("break" === t || "continue" === t) && i.tryLoc <= e && e <= i.finallyLoc && (i = null); var a = i ? i.completion : {}; return a.type = t, a.arg = e, i ? (this.method = "next", this.next = i.finallyLoc, y) : this.complete(a); }, complete: function complete(t, e) { if ("throw" === t.type) throw t.arg; return "break" === t.type || "continue" === t.type ? this.next = t.arg : "return" === t.type ? (this.rval = this.arg = t.arg, this.method = "return", this.next = "end") : "normal" === t.type && e && (this.next = e), y; }, finish: function finish(t) { for (var e = this.tryEntries.length - 1; e >= 0; --e) { var r = this.tryEntries[e]; if (r.finallyLoc === t) return this.complete(r.completion, r.afterLoc), resetTryEntry(r), y; } }, "catch": function _catch(t) { for (var e = this.tryEntries.length - 1; e >= 0; --e) { var r = this.tryEntries[e]; if (r.tryLoc === t) { var n = r.completion; if ("throw" === n.type) { var o = n.arg; resetTryEntry(r); } return o; } } throw Error("illegal catch attempt"); }, delegateYield: function delegateYield(e, r, n) { return this.delegate = { iterator: values(e), resultName: r, nextLoc: n }, "next" === this.method && (this.arg = t), y; } }, e; }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
-function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
 function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
+function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
+function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
+function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
+function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 function _classCallCheck(a, n) { if (!(a instanceof n)) throw new TypeError("Cannot call a class as a function"); }
 function _defineProperties(e, r) { for (var t = 0; t < r.length; t++) { var o = r[t]; o.enumerable = o.enumerable || !1, o.configurable = !0, "value" in o && (o.writable = !0), Object.defineProperty(e, _toPropertyKey(o.key), o); } }
 function _createClass(e, r, t) { return r && _defineProperties(e.prototype, r), t && _defineProperties(e, t), Object.defineProperty(e, "prototype", { writable: !1 }), e; }
@@ -48,60 +51,64 @@ function _assertClassBrand(e, t, n) { if ("function" == typeof e ? e === t : e.h
  * - Firestoreの脆弱なクエリを補うため、指定されたプロパティに対するtokenMapを生成します。
  * - サブクラスで`customClassMap`を使用することにより、initialize()でカスタムクラスを使用しているプロパティの保持が可能です。
  * - ドキュメントの削除時、従属ドキュメントの存在をチェックし、存在する場合はエラーをスローします。
- *   但し、削除処理がトランザクションであった場合、従属ドキュメントの存在をチェックしません。
- *   サブクラス側でhasChild()を使ってチェックする必要があります。
+ *
+ * 注意事項:
+ * - 削除処理がトランザクションであった場合、従属ドキュメントの存在をチェックしません。
+ * - サブクラス側でhasChild()を使ってチェックする必要があります。
+ * - また、beforeDelete()、afterDelete()は実行されません。
+ * - 論理削除とトランザクションを組み合わせることはできません。
  *
  * 使用方法:
  * このクラスは直接使用せず、特定のコレクションに対応するサブクラスを作成して使用します。
+ * - `collectionPath`でコレクション名を定義します。
+ * - `logicalDelete`でドキュメントの削除方法（物理・論理）を定義します。
+ * - `classProps`でサブクラスに定義されるべきプロパティを定義します。
+ * - 別のコレクションに自身に従属するドキュメントが存在する場合、`hasMany`でその内容を定義します。
  * サブクラスで独自のフィールドやメソッドを追加することで、特定のビジネスロジックに対応可能です。
  *
  * コンストラクタの使用例:
  * ```javascript
- * class OrderModel extends FireModel {
+ * class Order extends FireModel {
+ *
+ *   // Firestoreでのコレクション名を定義
+ *   static collectionPath = 'Orders';
+ *   static logicalDelete = true;
+ *   static classProps = {
+ *     code: { type: String, default: '', required: false },
+ *     name: { type: String, default: '', required: true },
+ *     size: { type: String, default: '', required: false },
+ *     amount: { type: Number, default: 0, required: true }
+ *   }
+ *   static hasMany = [
+ *     { collection: 'orderItems', field: 'orderId', condition: '==', type: 'collection' }
+ *   ]
+ *
  *   constructor(data = {}) {
- *     super(
- *       data,
- *       'orders',
- *       [
- *         { collection: 'orderItems', field: 'orderId', condition: '==', type: 'subcollection' }
- *       ],
- *       true // `true` は論理削除を有効にするフラグ,
- *       tokenFields: ['name']
- *     );
- *   }
- *
- *   // サブクラスで使用するプロパティはinitializeメソッドで定義します。
- *   // Object.definePropertyを使用する場合はconstructor内に定義します。
- *   initialize(item = {}) {
- *     this.name = ''
- *     super.initialize(item)
- *   }
- *
- *   // OrderModelに固有のメソッドを追加
- *   calculateTotal() {
- *     return this.items.reduce((total, item) => total + item.price, 0);
+ *     super(data);
+ *     ...
  *   }
  * }
  * ```
- * - `collectionPath`: 'orders'は、このモデルが対象とするFirestoreコレクションのパスです。
- * - `hasMany`: 'orderItems'ドキュメントが`orders`ドキュメントに依存していることを表します。
- *   この設定により`orderItems`ドキュメントが存在する`orders`ドキュメントの削除を抑制することができます。
- * - `logicalDelete`: `true`に設定することで、ドキュメントの削除時に論理削除が適用され、ドキュメントはアーカイブされます。
- * - `tokenFields`: tokenMapとして生成する対象のプロパティを指定します。
+ *
+ * classProps:
+ * - 定義された内容で`initialize` でメソッドにて各種プロパティが定義、初期化されます。
+ * - `beforeCreate`、`beforeUpdate` で定義されたプロパティの入力チェックを行います。
+ * - 自動採番で値がセットされるプロパティには`requiredByClass`をtrueにしないでください。
+ *   #validatePropertiesは自動採番が行われる前に実行されるため、エラーになります。
  *
  * tokenMap:
  * - Firestoreの脆弱なクエリを補完するための、Ngram検索を行うためのフィールドです。
  * - Firestoreのデータのkeyに使用することができないため、サロゲートペア文字列は除外されます。
  *
- * classProps:
- * - このクラスはbeforeCreate、beforeUpdateで`classProps`に定義されたプロパティの入力チェックを行います。
- * - `classProps`はクラスで使用するプロパティを以下の形式で定義したものです。
- *    docId: { type: String, default: '', required: false, requiredByClass: false }
- * - 自動採番で値がセットされるプロパティには`requiredByClass`をtrueにしないでください。
- *   validatePropertiesは自動採番が行われる前に実行されるため、エラーになります。
- *
  * createメソッド:
- * ‐ `transaction`引数を与えると、トランザクション処理を行います。
+ * ‐ ドキュメントを作成するメソッドです。`transaction` 引数を使ったコールバックを利用可能で、サブクラス独自のトランザクション処理を行うことができます。
+ *
+ * updateメソッド:
+ * - ドキュメントを更新するメソッドです。`transaction` 引数を使ったコールバックを利用可能で、サブクラス独自のトランザクション処理を行うことができます。
+ *
+ * deleteメソッド:
+ * - ドキュメントを削除するメソッドです。`transaction` 引数を使ったコールバックを利用可能で、サブクラス独自のトランザクション処理を行うことができます。
+ * - `logicalDelete` が `true` の場合、ドキュメントは削除されず、`${this.#collectionPath}-archive` コレクションに移動されます。
  *
  * 注意:
  * - このクラスは、FirestoreのドキュメントIDや作成日時、更新日時、ユーザーIDなどのメタデータを自動管理します。
@@ -110,10 +117,21 @@ function _assertClassBrand(e, t, n) { if ("function" == typeof e ? e === t : e.h
  * - Firestoreのリアルタイムリスナーを活用することで、ドキュメントの変更をリアルタイムで監視し、自動的にデータモデルに反映します。
  *
  * @author shisyamo4131
- * @version 1.8.0
+ * @version 2.0.0
  * @see https://firebase.google.com/docs/firestore
  * @updates
- * - version 1.8.0 - 2024-09-23 - delete()で、transactionが設定されている場合は従属ドキュメントの存在チェックを行わないように修正。
+ * ‐ version 2.0.0 - 2024-09-xx - [破壊的]`collectionPath`の設定をコンストラクタの引数ではなく、サブコレクションで定義された変数から行うように改良。
+ *                              - [破壊的]`hasMany`の設定をコンストラクタの引数ではなく、サブコレクションで定義された変数から行うように改良。
+ *                              - [破壊的]`tokenFields`の設定をコンストラクタの引数ではなく、サブコレクションで定義された変数から行うように改良。
+ *                              - [破壊的]`logicalDelete`の設定をコンストラクタの引数ではなく、サブコレクションで定義された変数から行うように改良。
+ *                              - [破壊的]`useAutonumber`の設定をサブコレクションで定義された変数から行うように改良。
+ *                              - [破壊的]`classProps`の設定をコンストラクタの引数ではなく、サブコレクションで定義された変数から行うように改良。
+ *                              - [破壊的]`validateProperties` メソッドをプライベートに変更。
+ *                              - [破壊的]`create` メソッドのトランザクションに関する仕様を変更。
+ *                              - [破壊的]`update` メソッドのトランザクションに関する仕様を変更。
+ *                              - [破壊的]`delete` メソッドのトランザクションに関する仕様を変更。
+ * - version 1.8.0 - 2024-09-23 - トランザクションによる削除処理専用としてdeleteAsTransactionを実装。
+ *                              - delete()で、transactionが設定されている場合はdeleteAsTransactionを呼び出すように。
  *                              - サブクラス側で従属ドキュメントの存在をチェックできるように、hasChild()を外部に公開。
  * - version 1.7.1 - 2024-09-19 - initialize()でitemのcreateAt、updateAtを編集する際、itemがnullだとエラーになるのを修正。
  *                              - initialize()でcustomClassMapによるカスタムクラスのマッピング機能を実装。
@@ -137,12 +155,13 @@ function _assertClassBrand(e, t, n) { if ("function" == typeof e ? e === t : e.h
  * - version 1.0.0 - 2024-08-19 - 初版完成
  */
 var _collectionPath = /*#__PURE__*/new WeakMap();
-var _hasMany = /*#__PURE__*/new WeakMap();
+var _useAutonumber = /*#__PURE__*/new WeakMap();
 var _logicalDelete = /*#__PURE__*/new WeakMap();
+var _classProps = /*#__PURE__*/new WeakMap();
+var _hasMany = /*#__PURE__*/new WeakMap();
+var _tokenFields = /*#__PURE__*/new WeakMap();
 var _listener = /*#__PURE__*/new WeakMap();
 var _items = /*#__PURE__*/new WeakMap();
-var _tokenFields = /*#__PURE__*/new WeakMap();
-var _classProps = /*#__PURE__*/new WeakMap();
 var _FireModel_brand = /*#__PURE__*/new WeakSet();
 var FireModel = exports["default"] = /*#__PURE__*/function () {
   /**
@@ -151,35 +170,29 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
    * 依存関係のあるコレクションの管理や論理削除の処理も可能です。
    *
    * @param {Object} item - 初期化するデータモデルのプロパティを含むオブジェクト
-   * @param {string} collectionPath - Firestoreコレクションのパス
-   * @param {Array<Object>} hasMany - 依存するコレクションの情報を格納した配列
-   * @param {boolean} logicalDelete - 論理削除を行うかどうかを指定するフラグ
-   * @param {Array<Object>} tokenFields - tokenMap作成対象のプロパティ名の配列
-   * @param {Object} classProps - クラスに用意するプロパティの定義を表したオブジェクト
    */
   function FireModel() {
     var _item = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-    var collectionPath = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
-    var _hasMany2 = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
-    var logicalDelete = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
-    var tokenFields = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : [];
-    var classProps = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : {};
     _classCallCheck(this, FireModel);
     /****************************************************************************
-     * コンストラクタに引き渡されたhasManyについて検証します。
-     * - hasManyプロパティは配列である必要があります。
-     * - 各要素はオブジェクトであり、必要なプロパティを持っていることを確認します。
-     * - 必須キーは "collection", "field", "condition", "type" です。
-     * - "type" プロパティには "collection" または "subcollection" のみを指定できます。
+     * サブクラスに定義された `classProps` の値を、自身の `#classProps` にセットします。
+     * - `classProps` が未定義の場合は、空のオブジェクトをセットします。
+     * - 各プロパティはオブジェクトであり、必須のキーとして `type`、`default`、`required` を持ちます。
+     * - `type` は `String`, `Number`, `Boolean`, `Object`, `Array`, `Function` のいずれかである必要があります。
+     * - `required` は `Boolean` 型でなければなりません。
      *
-     * @param {Array<Object>} hasMany コンストラクタで受け取ったhasMany
-     * @throws {Error} バリデーションに失敗した場合にエラーをスローします。
+     * @throws {Error} - `classProps` の形式が正しくない場合、エラーをスローします。
+     * @returns {void}
      ****************************************************************************/
     _classPrivateMethodInitSpec(this, _FireModel_brand);
-    /**
-     * ドキュメントのコレクションパスです。
-     */
+    // Firestoreのコレクション名です。
     _classPrivateFieldInitSpec(this, _collectionPath, "");
+    // ドキュメントの作成時に自動採番を採用するかどうかを表すフラグです。
+    _classPrivateFieldInitSpec(this, _useAutonumber, false);
+    // ドキュメントの削除処理を論理的に行うかどうかのフラグです。
+    _classPrivateFieldInitSpec(this, _logicalDelete, false);
+    // クラスに適用されるべきプロパティの定義です。
+    _classPrivateFieldInitSpec(this, _classProps, {});
     /**
      * ドキュメントに依存するコレクション情報を格納するプロパティです。
      * 各要素は以下の構造を持つオブジェクトです:
@@ -190,29 +203,18 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
      *          'collection' は通常のコレクション、'subcollection' はサブコレクションを意味します。
      */
     _classPrivateFieldInitSpec(this, _hasMany, []);
-    /**
-     * ドキュメントの削除時に論理削除を適用するかどうかを表すフラグです。
-     */
-    _classPrivateFieldInitSpec(this, _logicalDelete, false);
-    /**
-     * リアルタイムリスナーのデタッチ関数用の変数です。
-     */
-    _classPrivateFieldInitSpec(this, _listener, null);
-    /**
-     * subscribeDocs関数のリアルタイムリスナーで取得したドキュメントデータ用の配列です。
-     */
-    _classPrivateFieldInitSpec(this, _items, []);
-    /**
-     * tokenMapに反映させるフィールドのリストです。
-     */
+    // tokenMapに反映させるフィールドのリストです。
     _classPrivateFieldInitSpec(this, _tokenFields, []);
-    _classPrivateFieldInitSpec(this, _classProps, {});
-    _classPrivateFieldSet(_collectionPath, this, collectionPath);
-    _assertClassBrand(_FireModel_brand, this, _validateHasMany).call(this, _hasMany2);
-    _classPrivateFieldSet(_hasMany, this, _hasMany2);
-    _classPrivateFieldSet(_logicalDelete, this, logicalDelete);
-    _classPrivateFieldSet(_tokenFields, this, tokenFields);
-    _classPrivateFieldSet(_classProps, this, classProps);
+    // リアルタイムリスナーのデタッチ関数用の変数です。
+    _classPrivateFieldInitSpec(this, _listener, null);
+    // subscribeDocs関数のリアルタイムリスナーで取得したドキュメントデータ用の配列です。
+    _classPrivateFieldInitSpec(this, _items, []);
+    _assertClassBrand(_FireModel_brand, this, _loadClassProps).call(this);
+    _assertClassBrand(_FireModel_brand, this, _loadUseAutonumber).call(this);
+    _assertClassBrand(_FireModel_brand, this, _loadCollectionPath).call(this);
+    _assertClassBrand(_FireModel_brand, this, _loadLogicalDelete).call(this);
+    _assertClassBrand(_FireModel_brand, this, _loadHasMany).call(this);
+    _assertClassBrand(_FireModel_brand, this, _loadTokenFields).call(this);
     this.initialize(_item);
     Object.defineProperties(this, {
       tokenMap: {
@@ -225,19 +227,46 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
   }
 
   /****************************************************************************
-   * 当該インスタンスを複製したインスタンスを返します。
-   * - vueコンポーネントにおいてインスタンスを親に返す場合など、参照渡しを回避するのに使用します。
-   * @returns {this.constructor} - 複製された新しいインスタンス
+   * 引数にはエラー時に出力されるコードサンプルを文字列で受け取ります。
+   * 各行のインデントを調整して返します。
+   * @returns {string} インデントが調整されたコードサンプル（文字列）
    ****************************************************************************/
   return _createClass(FireModel, [{
-    key: "clone",
-    value: function clone() {
-      // return Object.assign(new this.constructor(), structuredClone(this));
-      return new this.constructor(this);
+    key: "removeIndentation",
+    value: function removeIndentation(str) {
+      // 最初と最後の余分な改行やスペースを削除
+      var trimmedStr = str.trim();
+
+      // 文字列を行ごとに分割
+      var lines = ["--"].concat(_toConsumableArray(trimmedStr.split("\n")), ["--"]);
+
+      // インデントがある行のみを対象に最小のインデント長を計算
+      var indentLength = lines.filter(function (line) {
+        return line.trim().length > 0 && line.match(/^\s+/);
+      }) // 空行とインデントがない行を除外
+      .reduce(function (min, line) {
+        var match = line.match(/^(\s+)/); // 行頭のスペースを取得
+        return match ? Math.min(min, match[1].length) : min;
+      }, Infinity);
+
+      // インデントを削除して再構成
+      return lines.map(function (line) {
+        // 空行ならそのまま返す。インデントがある行のみインデントを削除
+        return line.trim().length === 0 || !line.match(/^\s+/) ? line : line.slice(indentLength);
+      }).join("\n");
     }
   }, {
-    key: "validateProperties",
+    key: "clone",
     value:
+    /****************************************************************************
+     * 当該インスタンスを複製したインスタンスを返します。
+     * - vueコンポーネントにおいてインスタンスを親に返す場合など、参照渡しを回避するのに使用します。
+     * @returns {this.constructor} - 複製された新しいインスタンス
+     ****************************************************************************/
+    function clone() {
+      return new this.constructor(this);
+    }
+
     /****************************************************************************
      * validateProperties
      *
@@ -255,30 +284,6 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
      * @returns {void}
      * @throws {Error} 必須プロパティが未設定であるか、バリデーションに失敗した場合
      ****************************************************************************/
-    function validateProperties() {
-      var _this = this;
-      Object.keys(_classPrivateFieldGet(_classProps, this)).forEach(function (key) {
-        var propConfig = _classPrivateFieldGet(_classProps, _this)[key];
-        // 必須チェック
-        if (propConfig.required && (_this[key] === undefined || _this[key] === null || _this[key] === "")) {
-          throw new Error("".concat(key, "\u306F\u5FC5\u9808\u3067\u3059\u3002"));
-        }
-
-        // バリデーションチェック
-        if (propConfig.validator && !propConfig.validator(_this[key])) {
-          throw new Error("".concat(key, "\u306E\u5024\u304C\u7121\u52B9\u3067\u3059: ").concat(_this[key]));
-        }
-      });
-    }
-
-    /****************************************************************************
-     * tokenMapを生成して返します。
-     * - 指定されたフィールドの値からトークンを生成し、トークンマップを作成します。
-     * - フィールドが存在しないか、値が空の場合は無視されます。
-     * - サロゲートペア、特殊文字、および空白文字を除去してトークンを生成します。
-     *
-     * @returns {Object|null} 生成されたtokenMapを返します。対象フィールドがない場合はnullを返します。
-     ****************************************************************************/
   }, {
     key: "initialize",
     value:
@@ -293,7 +298,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
      * @returns {void}
      ****************************************************************************/
     function initialize() {
-      var _this2 = this,
+      var _this = this,
         _item$createAt,
         _item$updateAt;
       var item = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
@@ -301,8 +306,8 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
        * classPropsに定義されているプロパティを初期化
        */
       Object.keys(_classPrivateFieldGet(_classProps, this)).forEach(function (key) {
-        var propDefault = _classPrivateFieldGet(_classProps, _this2)[key]["default"];
-        _this2[key] = typeof propDefault === "function" ? propDefault() : propDefault;
+        var propDefault = _classPrivateFieldGet(_classProps, _this)[key]["default"];
+        _this[key] = typeof propDefault === "function" ? propDefault() : propDefault;
       });
 
       // itemがnullやundefinedであれば終了
@@ -347,24 +352,24 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       // サブクラスで定義されたcustomClassMapを取得
       var customClassMap = this.constructor.customClassMap || {};
       Object.keys(item).forEach(function (key) {
-        if (key in _this2 && key !== "createAt" && key !== "updateAt") {
+        if (key in _this && key !== "createAt" && key !== "updateAt") {
           // 配列の場合、配列の各要素にカスタムクラスを適用
           if (Array.isArray(item[key]) && customClassMap[key]) {
-            _this2[key] = item[key].map(function (element) {
+            _this[key] = item[key].map(function (element) {
               return new customClassMap[key](element);
             });
           }
           // カスタムクラスのマッピングがある場合、そのクラスで再初期化
           else if (customClassMap[key] && item[key] instanceof Object) {
-            _this2[key] = new customClassMap[key](item[key]);
+            _this[key] = new customClassMap[key](item[key]);
           }
           // オブジェクト以外のプリミティブ型（文字列、数値、ブールなど）の場合
           else if (_typeof(item[key]) !== "object") {
-            _this2[key] = item[key];
+            _this[key] = item[key];
           }
           // 通常のオブジェクトの場合はディープコピー
           else {
-            _this2[key] = JSON.parse(JSON.stringify(item[key]));
+            _this[key] = JSON.parse(JSON.stringify(item[key]));
           }
         }
       });
@@ -379,7 +384,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
   }, {
     key: "converter",
     value: function converter() {
-      var _this3 = this;
+      var _this2 = this;
       return {
         /**
          * インスタンスをFirestoreに保存する際の変換メソッドです。
@@ -395,36 +400,10 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
          * @returns {Object} - クラスインスタンス
          */
         fromFirestore: function fromFirestore(snapshot) {
-          return _this3.fromFirestore(snapshot);
+          return _this2.fromFirestore(snapshot);
         }
       };
     }
-
-    // /****************************************************************************
-    //  * クラスインスタンスを純粋なオブジェクトに変換します。
-    //  * - 継承先のクラスで定義されたプロパティも含めて出力します。
-    //  * - `enumerable: true`のプロパティのみを出力します。
-    //  *
-    //  * @returns {Object} - Firestoreに保存可能なオブジェクト形式
-    //  ****************************************************************************/
-    // toObject() {
-    //   const obj = {};
-
-    //   // プロトタイプチェーンをたどってプロパティを収集
-    //   let currentObj = this;
-    //   while (currentObj !== null) {
-    //     Object.entries(Object.getOwnPropertyDescriptors(currentObj)).forEach(
-    //       ([key, descriptor]) => {
-    //         if (descriptor.enumerable) {
-    //           obj[key] = this[key];
-    //         }
-    //       }
-    //     );
-    //     currentObj = Object.getPrototypeOf(currentObj);
-    //   }
-
-    //   return obj;
-    // }
 
     /****************************************************************************
      * クラスインスタンスを純粋なオブジェクトに変換します。
@@ -440,7 +419,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
   }, {
     key: "toObject",
     value: function toObject() {
-      var _this4 = this;
+      var _this3 = this;
       var obj = {};
 
       // プロトタイプチェーンをたどってプロパティを収集
@@ -451,7 +430,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
             key = _ref2[0],
             descriptor = _ref2[1];
           if (descriptor.enumerable) {
-            var value = _this4[key];
+            var value = _this3[key];
 
             // カスタムクラスがtoObjectメソッドを持っている場合は再帰的に呼び出す
             if (value && typeof value.toObject === "function") {
@@ -489,23 +468,6 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       return obj;
     }
 
-    // /****************************************************************************
-    //  * Firestoreから読み込んだデータをクラスインスタンスに変換するメソッドです。
-    //  * - サブクラスでオーバーライドすることができます。
-    //  *
-    //  * @param {Object} snapshot - Firestoreから取得したドキュメントスナップショット
-    //  * @returns {Object} - クラスインスタンス
-    //  ****************************************************************************/
-    // fromFirestore(snapshot) {
-    //   const data = snapshot.data();
-    //   return new this.constructor(
-    //     data,
-    //     this.#collectionPath,
-    //     this.#hasMany,
-    //     this.#logicalDelete
-    //   );
-    // }
-
     /****************************************************************************
      * Firestoreから取得したデータをクラスインスタンスに変換します。
      * - カスタムクラスが定義されている場合、`customClassMap`を参照して適切なインスタンスを生成します。
@@ -541,7 +503,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
 
     /****************************************************************************
      * ドキュメント作成前に実行されるメソッドです。
-     * - `classProps`で定義されたプロパティについて、`validateProperties()`でチェックを行います。
+     * - `classProps`で定義されたプロパティについて、`#validateProperties()`でチェックを行います。
      * - コレクション単位で必要な処理がある場合にオーバーライドして処理を追加してください。
      * - サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
      * @returns {Promise<void>} - デフォルトでは、解決済みのPromiseを返します。
@@ -549,10 +511,10 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
   }, {
     key: "beforeCreate",
     value: function beforeCreate() {
-      var _this5 = this;
+      var _this4 = this;
       return new Promise(function (resolve, reject) {
         try {
-          _this5.validateProperties();
+          _assertClassBrand(_FireModel_brand, _this4, _validateProperties).call(_this4);
           resolve();
         } catch (error) {
           reject(error);
@@ -574,7 +536,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
 
     /****************************************************************************
      * ドキュメント更新前に実行されるメソッドです。
-     * - `classProps`で定義されたプロパティについて、`validateProperties()`でチェックを行います。
+     * - `classProps`で定義されたプロパティについて、`#validateProperties()`でチェックを行います。
      * - コレクション単位で必要な処理がある場合にオーバーライドして処理を追加してください。
      * - サブクラスでこのメソッドをオーバーライドする際は、Promiseを返すようにしてください。
      * @returns {Promise<void>} - デフォルトでは、解決済みのPromiseを返します。
@@ -582,10 +544,10 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
   }, {
     key: "beforeUpdate",
     value: function beforeUpdate() {
-      var _this6 = this;
+      var _this5 = this;
       return new Promise(function (resolve, reject) {
         try {
-          _this6.validateProperties();
+          _assertClassBrand(_FireModel_brand, _this5, _validateProperties).call(_this5);
           resolve();
         } catch (error) {
           reject(error);
@@ -630,28 +592,26 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
     }
 
     /****************************************************************************
-     * ドキュメントを書き込みます。
-     * ‐ docIdを指定することで、ドキュメントIDを指定した書き込みを行うことが可能です。
-     * - useAutonumberをtrueにすると自動採番を行います。
-     * - useAutonumberの既定値はfalseです。
-     * - 自動採番を行うコレクションの場合、このメソッドをオーバーライドし、useAutonumberの既定値をtrueにすることをお勧めします。
-     * - transactionを引数に渡すことでトランザクション処理を行うことが可能です。
-     * @param {string|null} docId - 指定されたドキュメントID（省略可能）
-     * @param {boolean} useAutonumber - 自動採番を行うかどうかのフラグ（省略可能）
-     * @param {object|null} transaction - Firestoreトランザクションオブジェクト（省略可能）
-     * @returns {Promise<DocumentReference>} - 作成されたドキュメントのリファレンス
-     * @throws {Error} - ドキュメントの作成中にエラーが発生した場合にスローされます
+     * Firestore にドキュメントを書き込みます。
+     * - `docId` を指定することで、特定のドキュメントIDを使用して作成することが可能です。
+     * - `useAutonumber` が true の場合、自動採番を利用します。デフォルトは false です。
+     * - `transaction` に Firestore のトランザクション関数を渡すことで、トランザクション内で複数の処理を行うことができます。
+     *
+     * @param {string|null} docId - ドキュメントID（省略可能、デフォルトは `null`）
+     * @param {function|null} transaction - トランザクション処理を行うための関数（省略可能、デフォルトは `null`）
+     *
+     * @returns {Promise<DocumentReference>} - 作成された Firestore ドキュメントの参照
+     *
+     * @throws {Error} - ドキュメント作成中にエラーが発生した場合にスローされます。
      ****************************************************************************/
   }, {
     key: "create",
     value: (function () {
       var _create = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2() {
-        var _this7 = this;
+        var _this6 = this;
         var _ref3,
           _ref3$docId,
           docId,
-          _ref3$useAutonumber,
-          useAutonumber,
           _ref3$transaction,
           transaction,
           sender,
@@ -663,8 +623,8 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
         return _regeneratorRuntime().wrap(function _callee2$(_context2) {
           while (1) switch (_context2.prev = _context2.next) {
             case 0:
-              _ref3 = _args2.length > 0 && _args2[0] !== undefined ? _args2[0] : {}, _ref3$docId = _ref3.docId, docId = _ref3$docId === void 0 ? null : _ref3$docId, _ref3$useAutonumber = _ref3.useAutonumber, useAutonumber = _ref3$useAutonumber === void 0 ? false : _ref3$useAutonumber, _ref3$transaction = _ref3.transaction, transaction = _ref3$transaction === void 0 ? null : _ref3$transaction;
-              sender = "".concat(this.constructor.name, " - create"); // メッセージ出力
+              _ref3 = _args2.length > 0 && _args2[0] !== undefined ? _args2[0] : {}, _ref3$docId = _ref3.docId, docId = _ref3$docId === void 0 ? null : _ref3$docId, _ref3$transaction = _ref3.transaction, transaction = _ref3$transaction === void 0 ? null : _ref3$transaction;
+              sender = "".concat(_classPrivateFieldGet(_collectionPath, this), " - create"); // メッセージ出力
               if (docId) {
                 // eslint-disable-next-line no-console
                 console.info((0, _firestoreMessages.getMessage)(sender, "CREATE_CALLED", docId));
@@ -672,7 +632,15 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
                 // eslint-disable-next-line no-console
                 console.info((0, _firestoreMessages.getMessage)(sender, "CREATE_CALLED_NO_DOCID"));
               }
-              _context2.prev = 3;
+
+              // transactionがnull以外の場合は関数であることを確認
+              if (!(transaction !== null && typeof transaction !== "function")) {
+                _context2.next = 5;
+                break;
+              }
+              throw new Error("[".concat(sender, "] 'transaction'\u306F\u95A2\u6570\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002"));
+            case 5:
+              _context2.prev = 5;
               // ドキュメント作成準備
               this.createAt = new Date();
               this.updateAt = new Date();
@@ -680,35 +648,55 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
               colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
               docRef = docId ? (0, _firestore.doc)(colRef, docId).withConverter(this.converter()) : (0, _firestore.doc)(colRef).withConverter(this.converter());
               this.docId = docRef.id;
-              _context2.next = 12;
+              _context2.next = 14;
               return this.beforeCreate();
-            case 12:
-              if (!useAutonumber) {
-                _context2.next = 23;
-                break;
-              }
-              if (!transaction) {
+            case 14:
+              if (!(transaction || _classPrivateFieldGet(_useAutonumber, this))) {
                 _context2.next = 19;
                 break;
               }
-              _context2.next = 16;
-              return _assertClassBrand(_FireModel_brand, this, _createWithAutonumber).call(this, transaction, this);
-            case 16:
-              transaction.set(docRef, this);
-              _context2.next = 21;
-              break;
-            case 19:
-              _context2.next = 21;
+              _context2.next = 17;
               return (0, _firestore.runTransaction)(_firebaseInit.firestore, /*#__PURE__*/function () {
                 var _ref4 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(newTransaction) {
+                  var updater;
                   return _regeneratorRuntime().wrap(function _callee$(_context) {
                     while (1) switch (_context.prev = _context.next) {
                       case 0:
-                        _context.next = 2;
-                        return _assertClassBrand(_FireModel_brand, _this7, _createWithAutonumber).call(_this7, newTransaction, _this7);
-                      case 2:
-                        newTransaction.set(docRef, _this7);
+                        if (!_classPrivateFieldGet(_useAutonumber, _this6)) {
+                          _context.next = 12;
+                          break;
+                        }
+                        _context.next = 3;
+                        return _assertClassBrand(_FireModel_brand, _this6, _setAutonumber).call(_this6, newTransaction, _this6);
                       case 3:
+                        updater = _context.sent;
+                        if (!transaction) {
+                          _context.next = 7;
+                          break;
+                        }
+                        _context.next = 7;
+                        return transaction(newTransaction, _this6.toObject());
+                      case 7:
+                        // ドキュメントを作成
+                        newTransaction.set(docRef, _this6);
+
+                        // 自動採番を更新
+                        _context.next = 10;
+                        return updater();
+                      case 10:
+                        _context.next = 16;
+                        break;
+                      case 12:
+                        if (!transaction) {
+                          _context.next = 15;
+                          break;
+                        }
+                        _context.next = 15;
+                        return transaction(newTransaction, _this6);
+                      case 15:
+                        // ドキュメントを作成
+                        newTransaction.set(docRef, _this6);
+                      case 16:
                       case "end":
                         return _context.stop();
                     }
@@ -718,30 +706,30 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
                   return _ref4.apply(this, arguments);
                 };
               }());
-            case 21:
-              _context2.next = 25;
+            case 17:
+              _context2.next = 21;
               break;
-            case 23:
-              _context2.next = 25;
-              return transaction ? transaction.set(docRef, this) : (0, _firestore.setDoc)(docRef, this);
-            case 25:
-              _context2.next = 27;
+            case 19:
+              _context2.next = 21;
+              return (0, _firestore.setDoc)(docRef, this);
+            case 21:
+              _context2.next = 23;
               return this.afterCreate();
-            case 27:
+            case 23:
               // 成功メッセージ
               console.info((0, _firestoreMessages.getMessage)(sender, "CREATE_DOC_SUCCESS", _classPrivateFieldGet(_collectionPath, this), docRef.id));
               return _context2.abrupt("return", docRef);
-            case 31:
-              _context2.prev = 31;
-              _context2.t0 = _context2["catch"](3);
+            case 27:
+              _context2.prev = 27;
+              _context2.t0 = _context2["catch"](5);
               errorMsg = "Error in ".concat(sender, ": ").concat(_context2.t0.message); // eslint-disable-next-line no-console
               console.error(errorMsg);
               throw new Error(errorMsg);
-            case 36:
+            case 32:
             case "end":
               return _context2.stop();
           }
-        }, _callee2, this, [[3, 31]]);
+        }, _callee2, this, [[5, 27]]);
       }));
       function create() {
         return _create.apply(this, arguments);
@@ -749,10 +737,14 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       return create;
     }()
     /****************************************************************************
-     * 自動採番を利用してドキュメントを作成します。
-     * @param {Object} transaction Firestoreのトランザクションオブジェクト
-     * @param {Object} item ドキュメントとして登録するデータオブジェクト
-     * @returns {Promise<void>} - ドキュメントが存在しない場合は警告を出力し、存在する場合はプロパティにデータをセットします。
+     * Autonumbers コレクションから次の番号を取得し、指定されたフィールドにセットします。
+     *
+     * @param {Object} transaction - Firestore のトランザクションオブジェクト。採番とドキュメント作成がこのトランザクション内で行われます。
+     * @param {Object} item - ドキュメントとして登録するデータオブジェクト。このオブジェクトに自動採番された値がセットされます。
+     *
+     * @returns {Promise<function>} - 自動採番の処理後に実行される更新関数を返します。この関数を呼び出すことで Autonumbers コレクションが更新されます。
+     *
+     * @throws {Error} - 自動採番処理が失敗した場合にエラーをスローします。
      ****************************************************************************/
     )
   }, {
@@ -778,7 +770,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
           while (1) switch (_context3.prev = _context3.next) {
             case 0:
               docId = _args3.length > 0 && _args3[0] !== undefined ? _args3[0] : null;
-              sender = "".concat(this.constructor.name, " - fetch");
+              sender = "".concat(_classPrivateFieldGet(_collectionPath, this), " - fetch");
               if (docId) {
                 _context3.next = 4;
                 break;
@@ -846,7 +838,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
             case 0:
               docId = _args4.length > 0 && _args4[0] !== undefined ? _args4[0] : null;
               /* eslint-disable */
-              sender = "".concat(this.constructor.name, " - fetchDoc");
+              sender = "".concat(_classPrivateFieldGet(_collectionPath, this), " - fetchDoc");
               if (docId) {
                 _context4.next = 4;
                 break;
@@ -887,56 +879,6 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       return fetchDoc;
     }()
     /****************************************************************************
-     * Firestoreコレクションから条件に一致するドキュメントを取得し、そのデータを返します。
-     * - 返り値の配列に格納されるのは取得したドキュメントデータで初期化された、インスタンス化された当該クラスのオブジェクトです。
-     * @param {Array} constraints - Firestoreクエリの条件（whereなど）を格納した配列
-     * @returns {Promise<Array<Object>>} - 取得したドキュメントのデータで初期化された、インスタンス化された当該クラスのオブジェクトの配列
-     ****************************************************************************/
-    )
-  }, {
-    key: "fetchDocsOld",
-    value: (function () {
-      var _fetchDocsOld = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee5() {
-        var constraints,
-          sender,
-          colRef,
-          q,
-          querySnapshot,
-          _args5 = arguments;
-        return _regeneratorRuntime().wrap(function _callee5$(_context5) {
-          while (1) switch (_context5.prev = _context5.next) {
-            case 0:
-              constraints = _args5.length > 0 && _args5[0] !== undefined ? _args5[0] : [];
-              sender = "".concat(this.constructor.name, " - fetchDocsOld");
-              console.info((0, _firestoreMessages.getMessage)(sender, "FETCH_DOCS_CALLED", _classPrivateFieldGet(_collectionPath, this)));
-              _context5.prev = 3;
-              colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
-              q = _firestore.query.apply(void 0, [colRef].concat(_toConsumableArray(constraints))).withConverter(this.converter());
-              _context5.next = 8;
-              return (0, _firestore.getDocs)(q);
-            case 8:
-              querySnapshot = _context5.sent;
-              return _context5.abrupt("return", querySnapshot.docs.map(function (doc) {
-                return doc.data();
-              }));
-            case 12:
-              _context5.prev = 12;
-              _context5.t0 = _context5["catch"](3);
-              // eslint-disable-next-line no-console
-              console.error("[".concat(sender, "] ").concat(_context5.t0.message));
-              throw _context5.t0;
-            case 16:
-            case "end":
-              return _context5.stop();
-          }
-        }, _callee5, this, [[3, 12]]);
-      }));
-      function fetchDocsOld() {
-        return _fetchDocsOld.apply(this, arguments);
-      }
-      return fetchDocsOld;
-    }()
-    /****************************************************************************
      * Firestoreコレクションから条件に一致するドキュメントを取得します。
      * - クエリ形式に応じて、fetchDocsOldを呼び出すか、新バージョンのロジックを実行します。
      * - クエリ条件が文字列であった場合、tokenMapを利用したNgram検索を実行します。
@@ -949,9 +891,8 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
   }, {
     key: "fetchDocs",
     value: (function () {
-      var _fetchDocs = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee6() {
+      var _fetchDocs = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee5() {
         var constraints,
-          isOldVersion,
           queryConstraints,
           tokens,
           target,
@@ -961,26 +902,11 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
           colRef,
           q,
           querySnapshot,
-          _args6 = arguments;
-        return _regeneratorRuntime().wrap(function _callee6$(_context6) {
-          while (1) switch (_context6.prev = _context6.next) {
+          _args5 = arguments;
+        return _regeneratorRuntime().wrap(function _callee5$(_context5) {
+          while (1) switch (_context5.prev = _context5.next) {
             case 0:
-              constraints = _args6.length > 0 && _args6[0] !== undefined ? _args6[0] : [];
-              // 新形式か旧形式かを判定する関数
-              isOldVersion = function isOldVersion(constraints) {
-                return Array.isArray(constraints) && constraints.every(function (c) {
-                  return typeof c === "function";
-                });
-              }; // 旧バージョンの引数が与えられた場合、fetchDocsOldをコール
-              if (!isOldVersion(constraints)) {
-                _context6.next = 6;
-                break;
-              }
-              _context6.next = 5;
-              return this.fetchDocsOld(constraints);
-            case 5:
-              return _context6.abrupt("return", _context6.sent);
-            case 6:
+              constraints = _args5.length > 0 && _args5[0] !== undefined ? _args5[0] : [];
               queryConstraints = []; // constraintsが文字列である場合、N-gram検索用のクエリを生成
               if (typeof constraints === "string") {
                 tokens = [];
@@ -1024,18 +950,18 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
               // Firestoreクエリの実行
               colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
               q = _firestore.query.apply(void 0, [colRef].concat(queryConstraints)).withConverter(this.converter());
-              _context6.next = 12;
+              _context5.next = 7;
               return (0, _firestore.getDocs)(q);
-            case 12:
-              querySnapshot = _context6.sent;
-              return _context6.abrupt("return", querySnapshot.docs.map(function (doc) {
+            case 7:
+              querySnapshot = _context5.sent;
+              return _context5.abrupt("return", querySnapshot.docs.map(function (doc) {
                 return doc.data();
               }));
-            case 14:
+            case 9:
             case "end":
-              return _context6.stop();
+              return _context5.stop();
           }
-        }, _callee6, this);
+        }, _callee5, this);
       }));
       function fetchDocs() {
         return _fetchDocs.apply(this, arguments);
@@ -1043,17 +969,21 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       return fetchDocs;
     }()
     /****************************************************************************
-     * 現在プロパティにセットされている値で、ドキュメントを更新します。
-     * - FirestoreのupdateメソッドはwithConverterを受け付けないため、toObject()を使用しています。
-     * @param {object|null} transaction - Firestoreトランザクションオブジェクト（省略可能）
-     * @returns {Promise<DocumentReference>} 更新したドキュメントへの参照
-     * @throws {Error} ドキュメントの更新中にエラーが発生した場合にスローされます
+     * Firestore ドキュメントを現在のプロパティ値で更新します。
+     * - Firestore の `updateDoc` メソッドは `withConverter` をサポートしていないため、 `toObject()` を使用してオブジェクト形式に変換します。
+     *
+     * @param {function|null} transaction - トランザクション処理を行うための関数（省略可能、デフォルトは `null`）
+     *
+     * @returns {Promise<DocumentReference>} - 更新された Firestore ドキュメントの参照を返します。
+     *
+     * @throws {Error} - ドキュメント更新中にエラーが発生した場合にスローされます。
      ****************************************************************************/
     )
   }, {
     key: "update",
     value: (function () {
       var _update = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee7() {
+        var _this7 = this;
         var _ref5,
           _ref5$transaction,
           transaction,
@@ -1067,49 +997,85 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
           while (1) switch (_context7.prev = _context7.next) {
             case 0:
               _ref5 = _args7.length > 0 && _args7[0] !== undefined ? _args7[0] : {}, _ref5$transaction = _ref5.transaction, transaction = _ref5$transaction === void 0 ? null : _ref5$transaction;
-              sender = "".concat(this.constructor.name, " - update"); // 更新呼び出しのログ出力
+              sender = "".concat(_classPrivateFieldGet(_collectionPath, this), " - update"); // 更新呼び出しのログ出力
               // eslint-disable-next-line no-console
               console.info((0, _firestoreMessages.getMessage)(sender, "UPDATE_CALLED", this.docId));
-              _context7.prev = 3;
+
+              // transactionがnull以外の場合は関数であることを確認
+              if (!(transaction !== null && typeof transaction !== "function")) {
+                _context7.next = 5;
+                break;
+              }
+              throw new Error("[".concat(sender, "] 'transaction'\u306F\u95A2\u6570\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002"));
+            case 5:
+              _context7.prev = 5;
               if (this.docId) {
-                _context7.next = 6;
+                _context7.next = 8;
                 break;
               }
               throw new Error((0, _firestoreMessages.getMessage)(sender, "UPDATE_REQUIRES_DOCID"));
-            case 6:
+            case 8:
               colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
               docRef = (0, _firestore.doc)(colRef, this.docId); // updateDocの場合、withConverter.toFirestoreは使用できない。
               // 更新前処理
-              _context7.next = 10;
+              _context7.next = 12;
               return this.beforeUpdate();
-            case 10:
+            case 12:
               // 更新日時とユーザーIDの設定
               this.updateAt = new Date();
               this.uid = (_firebaseInit.auth === null || _firebaseInit.auth === void 0 || (_auth$currentUser2 = _firebaseInit.auth.currentUser) === null || _auth$currentUser2 === void 0 ? void 0 : _auth$currentUser2.uid) || "unknown";
 
               // ドキュメントの更新処理
-              // await updateDoc(docRef, this.toObject());
-              _context7.next = 14;
-              return transaction ? transaction.update(docRef, this.toObject()) : (0, _firestore.updateDoc)(docRef, this.toObject());
-            case 14:
-              _context7.next = 16;
+              if (!transaction) {
+                _context7.next = 19;
+                break;
+              }
+              _context7.next = 17;
+              return (0, _firestore.runTransaction)(_firebaseInit.firestore, /*#__PURE__*/function () {
+                var _ref6 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee6(newTransaction) {
+                  return _regeneratorRuntime().wrap(function _callee6$(_context6) {
+                    while (1) switch (_context6.prev = _context6.next) {
+                      case 0:
+                        _context6.next = 2;
+                        return transaction(newTransaction, _this7);
+                      case 2:
+                        // ドキュメントを更新
+                        newTransaction.update(docRef, _this7.toObject());
+                      case 3:
+                      case "end":
+                        return _context6.stop();
+                    }
+                  }, _callee6);
+                }));
+                return function (_x2) {
+                  return _ref6.apply(this, arguments);
+                };
+              }());
+            case 17:
+              _context7.next = 21;
+              break;
+            case 19:
+              _context7.next = 21;
+              return (0, _firestore.updateDoc)(docRef, this.toObject());
+            case 21:
+              _context7.next = 23;
               return this.afterUpdate();
-            case 16:
+            case 23:
               // 成功ログ出力
               // eslint-disable-next-line no-console
               console.info((0, _firestoreMessages.getMessage)(sender, "UPDATE_DOC_SUCCESS", _classPrivateFieldGet(_collectionPath, this), this.docId));
               return _context7.abrupt("return", docRef);
-            case 20:
-              _context7.prev = 20;
-              _context7.t0 = _context7["catch"](3);
+            case 27:
+              _context7.prev = 27;
+              _context7.t0 = _context7["catch"](5);
               errorMsg = "Error in ".concat(sender, ": ").concat(_context7.t0.message); // eslint-disable-next-line no-console
               console.error(errorMsg);
               throw new Error(errorMsg);
-            case 25:
+            case 32:
             case "end":
               return _context7.stop();
           }
-        }, _callee7, this, [[3, 20]]);
+        }, _callee7, this, [[5, 27]]);
       }));
       function update() {
         return _update.apply(this, arguments);
@@ -1181,6 +1147,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
     /****************************************************************************
      * 現在のドキュメントIDに該当するドキュメントを削除します。
      * - `logicalDelete`が指定されている場合、削除されたドキュメントはarchiveコレクションに移動されます。
+     * - `transaction`が指定されている場合は`deleteAsTransaction`を呼び出します。
      * @param {object|null} transaction - Firestoreトランザクションオブジェクト（省略可能）
      * @returns {Promise<void>} - 削除が完了すると解決されるPromise
      * @throws {Error} - ドキュメントの削除中にエラーが発生した場合にスローされます
@@ -1190,127 +1157,126 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
     key: "delete",
     value: (function () {
       var _delete2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee10() {
-        var _ref6,
-          _ref6$transaction,
+        var _this8 = this;
+        var _ref7,
+          _ref7$transaction,
           transaction,
           sender,
           hasChild,
           colRef,
           docRef,
           docSnapshot,
-          archiveColRef,
-          archiveDocRef,
           errorMsg,
           _args10 = arguments;
         return _regeneratorRuntime().wrap(function _callee10$(_context10) {
           while (1) switch (_context10.prev = _context10.next) {
             case 0:
-              _ref6 = _args10.length > 0 && _args10[0] !== undefined ? _args10[0] : {}, _ref6$transaction = _ref6.transaction, transaction = _ref6$transaction === void 0 ? null : _ref6$transaction;
-              sender = "".concat(this.constructor.name, " - delete"); // 削除呼び出しのログ出力
-              // eslint-disable-next-line no-console
+              _ref7 = _args10.length > 0 && _args10[0] !== undefined ? _args10[0] : {}, _ref7$transaction = _ref7.transaction, transaction = _ref7$transaction === void 0 ? null : _ref7$transaction;
+              sender = "".concat(_classPrivateFieldGet(_collectionPath, this), " - delete"); // 削除処理のログを出力
               console.info((0, _firestoreMessages.getMessage)(sender, "DELETE_CALLED", this.docId));
-              _context10.prev = 3;
+
+              // transactionがnull以外の場合は関数であることを確認
+              if (!(transaction !== null && typeof transaction !== "function")) {
+                _context10.next = 5;
+                break;
+              }
+              throw new Error("[".concat(sender, "] 'transaction'\u306F\u95A2\u6570\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002"));
+            case 5:
+              _context10.prev = 5;
               if (this.docId) {
-                _context10.next = 6;
+                _context10.next = 8;
                 break;
               }
               throw new Error((0, _firestoreMessages.getMessage)(sender, "DELETE_REQUIRES_DOCID"));
-            case 6:
-              if (transaction) {
-                _context10.next = 12;
-                break;
-              }
-              _context10.next = 9;
+            case 8:
+              _context10.next = 10;
               return this.hasChild();
-            case 9:
+            case 10:
               hasChild = _context10.sent;
               if (!hasChild) {
-                _context10.next = 12;
+                _context10.next = 13;
                 break;
               }
               throw new Error((0, _firestoreMessages.getMessage)(sender, "COULD_NOT_DELETE_CHILD_EXIST", hasChild.collection));
-            case 12:
+            case 13:
               colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
-              docRef = (0, _firestore.doc)(colRef, this.docId);
-              /**
-               * 2024-09-11 コメント
-               * - 物理削除であればドキュメントを取得する必要はない。
-               * - 論理削除の場合、archiveコレクションにドキュメントのコピーを作成するために取得が必要
-               * - インスタンスに格納されているデータが完全とは言えないため。
-               * - 結果、一度ドキュメントを取得する必要がある。
-               */
-              _context10.next = 16;
-              return transaction ? transaction.get(docRef) : (0, _firestore.getDoc)(docRef);
-            case 16:
+              docRef = (0, _firestore.doc)(colRef, this.docId); // ドキュメントの存在確認
+              _context10.next = 17;
+              return (0, _firestore.getDoc)(docRef);
+            case 17:
               docSnapshot = _context10.sent;
               if (docSnapshot.exists()) {
-                _context10.next = 19;
+                _context10.next = 20;
                 break;
               }
               throw new Error((0, _firestoreMessages.getMessage)(sender, "NO_DOCUMENT_TO_DELETE", _classPrivateFieldGet(_collectionPath, this), this.docId));
-            case 19:
-              _context10.next = 21;
+            case 20:
+              _context10.next = 22;
               return this.beforeDelete();
-            case 21:
-              if (!_classPrivateFieldGet(_logicalDelete, this)) {
-                _context10.next = 33;
+            case 22:
+              if (!(transaction || _classPrivateFieldGet(_logicalDelete, this))) {
+                _context10.next = 27;
                 break;
               }
-              archiveColRef = (0, _firestore.collection)(_firebaseInit.firestore, "".concat(_classPrivateFieldGet(_collectionPath, this), "_archive"));
-              archiveDocRef = (0, _firestore.doc)(archiveColRef, this.docId);
-              if (!transaction) {
-                _context10.next = 29;
-                break;
-              }
-              transaction.set(archiveDocRef, docSnapshot.data());
-              transaction["delete"](docRef);
-              _context10.next = 31;
-              break;
-            case 29:
-              _context10.next = 31;
+              _context10.next = 25;
               return (0, _firestore.runTransaction)(_firebaseInit.firestore, /*#__PURE__*/function () {
-                var _ref7 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee9(newTransaction) {
+                var _ref8 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee9(newTransaction) {
+                  var archiveColRef, archiveDocRef;
                   return _regeneratorRuntime().wrap(function _callee9$(_context9) {
                     while (1) switch (_context9.prev = _context9.next) {
                       case 0:
-                        newTransaction.set(archiveDocRef, docSnapshot.data());
-                        newTransaction["delete"](docRef);
-                      case 2:
+                        if (!transaction) {
+                          _context9.next = 3;
+                          break;
+                        }
+                        _context9.next = 3;
+                        return transaction(newTransaction, _this8);
+                      case 3:
+                        if (_classPrivateFieldGet(_logicalDelete, _this8)) {
+                          // 論理削除：archiveコレクションに移動し、元のドキュメントを削除
+                          archiveColRef = (0, _firestore.collection)(_firebaseInit.firestore, "".concat(_classPrivateFieldGet(_collectionPath, _this8), "_archive"));
+                          archiveDocRef = (0, _firestore.doc)(archiveColRef, _this8.docId);
+                          newTransaction.set(archiveDocRef, docSnapshot.data());
+                          newTransaction["delete"](docRef);
+                        } else {
+                          // 物理削除
+                          newTransaction["delete"](docRef);
+                        }
+                      case 4:
                       case "end":
                         return _context9.stop();
                     }
                   }, _callee9);
                 }));
-                return function (_x2) {
-                  return _ref7.apply(this, arguments);
+                return function (_x3) {
+                  return _ref8.apply(this, arguments);
                 };
               }());
-            case 31:
-              _context10.next = 35;
+            case 25:
+              _context10.next = 29;
               break;
-            case 33:
-              _context10.next = 35;
-              return transaction ? transaction["delete"](docRef) : (0, _firestore.deleteDoc)(docRef);
-            case 35:
-              _context10.next = 37;
+            case 27:
+              _context10.next = 29;
+              return (0, _firestore.deleteDoc)(docRef);
+            case 29:
+              _context10.next = 31;
               return this.afterDelete();
-            case 37:
+            case 31:
               // 成功ログ出力
-              // eslint-disable-next-line no-console
               console.info((0, _firestoreMessages.getMessage)(sender, "DELETE_DOC_SUCCESS", _classPrivateFieldGet(_collectionPath, this), this.docId));
-              _context10.next = 45;
+              _context10.next = 39;
               break;
-            case 40:
-              _context10.prev = 40;
-              _context10.t0 = _context10["catch"](3);
-              errorMsg = "Error in ".concat(sender, ": ").concat(_context10.t0.message); // eslint-disable-next-line no-console
+            case 34:
+              _context10.prev = 34;
+              _context10.t0 = _context10["catch"](5);
+              errorMsg = "Error in ".concat(sender, ": ").concat(_context10.t0.message);
               console.error(errorMsg);
               throw new Error(errorMsg);
-            case 45:
+            case 39:
             case "end":
               return _context10.stop();
           }
-        }, _callee10, this, [[3, 40]]);
+        }, _callee10, this, [[5, 34]]);
       }));
       function _delete() {
         return _delete2.apply(this, arguments);
@@ -1344,7 +1310,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
             case 0:
               batchSize = _args12.length > 0 && _args12[0] !== undefined ? _args12[0] : 500;
               pauseDuration = _args12.length > 1 && _args12[1] !== undefined ? _args12[1] : 500;
-              sender = "".concat(this.constructor.name, " - deleteAll");
+              sender = "".concat(_classPrivateFieldGet(_collectionPath, this), " - deleteAll");
               console.info((0, _firestoreMessages.getMessage)(sender, "DELETE_ALL_CALLED", _classPrivateFieldGet(_collectionPath, this)));
               // 引数のバリデーション
               if (!(typeof batchSize !== "number" || batchSize <= 0)) {
@@ -1445,7 +1411,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
           while (1) switch (_context13.prev = _context13.next) {
             case 0:
               /* eslint-disable */
-              sender = "".concat(this.constructor.name, " - restore");
+              sender = "".concat(_classPrivateFieldGet(_collectionPath, this), " - restore");
               if (docId) {
                 _context13.next = 5;
                 break;
@@ -1489,7 +1455,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
           }
         }, _callee12, this, [[6, 26]]);
       }));
-      function restore(_x3) {
+      function restore(_x4) {
         return _restore.apply(this, arguments);
       }
       return restore;
@@ -1504,7 +1470,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
     key: "unsubscribe",
     value: function unsubscribe() {
       /* eslint-disable */
-      var sender = "".concat(this.constructor.name, " - unsubscribe");
+      var sender = "".concat(_classPrivateFieldGet(_collectionPath, this), " - unsubscribe");
       console.info((0, _firestoreMessages.getMessage)(sender, "UNSUBSCRIBE_CALLED"));
       if (_classPrivateFieldGet(_listener, this)) {
         _classPrivateFieldGet(_listener, this).call(this);
@@ -1525,9 +1491,9 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
   }, {
     key: "subscribe",
     value: function subscribe(docId) {
-      var _this8 = this;
+      var _this9 = this;
       /* eslint-disable */
-      var sender = "".concat(this.constructor.name, " - subscribe");
+      var sender = "".concat(_classPrivateFieldGet(_collectionPath, this), " - subscribe");
       if (!docId) {
         throw new Error((0, _firestoreMessages.getMessage)(sender, "SUBSCRIBE_CALLED_NO_DOCID", _classPrivateFieldGet(_collectionPath, this)));
       }
@@ -1541,56 +1507,12 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
         var docRef = (0, _firestore.doc)(colRef, docId);
         _classPrivateFieldSet(_listener, this, (0, _firestore.onSnapshot)(docRef, function (docSnapshot) {
           if (docSnapshot.exists()) {
-            _this8.initialize(docSnapshot.data()); // ドキュメントデータを初期化
+            _this9.initialize(docSnapshot.data()); // ドキュメントデータを初期化
           } else {
             console.warn((0, _firestoreMessages.getMessage)(sender, "SUBSCRIBE_NO_DOCUMENT", docId));
           }
         }));
         console.info((0, _firestoreMessages.getMessage)(sender, "SUBSCRIBE_SUCCESS", _classPrivateFieldGet(_collectionPath, this), docId));
-      } catch (err) {
-        console.error("[".concat(sender, "] ").concat(err.message));
-        throw err;
-      }
-      /* eslint-enable */
-    }
-
-    /****************************************************************************
-     * Firestoreコレクションに対するリアルタイムリスナーを設定し、ドキュメントの変化を監視します。
-     * クエリ条件に一致するドキュメントのリスナーを設定し、結果は`#items`に格納されます。
-     * 旧バージョンでは、Firestoreのwhereなどを直接渡す形式です。
-     *
-     * @param {Array} constraints - Firestoreクエリの条件（whereなど）を格納した配列
-     * @returns {Array<Object>} - リアルタイムで監視しているドキュメントのデータが格納された配列
-     ****************************************************************************/
-  }, {
-    key: "subscribeDocsOld",
-    value: function subscribeDocsOld() {
-      var _this9 = this;
-      var constraints = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
-      /* eslint-disable */
-      var sender = "".concat(this.constructor.name, " - subscribeDocsOld");
-      console.info((0, _firestoreMessages.getMessage)(sender, "SUBSCRIBE_DOCS_CALLED", _classPrivateFieldGet(_collectionPath, this)));
-      try {
-        if (_classPrivateFieldGet(_listener, this)) {
-          console.info((0, _firestoreMessages.getMessage)(sender, "LISTENER_HAS_SET", _classPrivateFieldGet(_collectionPath, this)));
-          this.unsubscribe();
-        }
-        var colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
-        var q = _firestore.query.apply(void 0, [colRef].concat(_toConsumableArray(constraints))).withConverter(this.converter());
-        _classPrivateFieldSet(_listener, this, (0, _firestore.onSnapshot)(q, function (snapshot) {
-          snapshot.docChanges().forEach(function (change) {
-            var item = change.doc.data();
-            var index = _classPrivateFieldGet(_items, _this9).findIndex(function (_ref8) {
-              var docId = _ref8.docId;
-              return docId === item.docId;
-            });
-            if (change.type === "added") _classPrivateFieldGet(_items, _this9).push(item);
-            if (change.type === "modified") _classPrivateFieldGet(_items, _this9).splice(index, 1, item);
-            if (change.type === "removed") _classPrivateFieldGet(_items, _this9).splice(index, 1);
-          });
-        }));
-        console.info((0, _firestoreMessages.getMessage)(sender, "SUBSCRIBE_DOCS_SUCCESS", _classPrivateFieldGet(_collectionPath, this)));
-        return _classPrivateFieldGet(_items, this);
       } catch (err) {
         console.error("[".concat(sender, "] ").concat(err.message));
         throw err;
@@ -1611,19 +1533,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
     value: function subscribeDocs() {
       var _this10 = this;
       var constraints = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
-      var sender = "".concat(this.constructor.name, " - subscribeDocs");
-
-      // 新形式か旧形式かを判定する関数
-      var isOldVersion = function isOldVersion(constraints) {
-        return Array.isArray(constraints) && constraints.every(function (c) {
-          return typeof c === "function";
-        });
-      };
-
-      // 旧バージョンの引数が与えられた場合、subscribeDocsOldをコール
-      if (isOldVersion(constraints)) {
-        return this.subscribeDocsOld(constraints);
-      }
+      var sender = "".concat(_classPrivateFieldGet(_collectionPath, this), " - subscribeDocs");
 
       // eslint-disable-next-line no-console
       console.info((0, _firestoreMessages.getMessage)(sender, "SUBSCRIBE_DOCS_CALLED", _classPrivateFieldGet(_collectionPath, this)));
@@ -1704,47 +1614,221 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
     }
   }]);
 }();
-function _validateHasMany(hasMany) {
-  if (!Array.isArray(hasMany)) {
-    throw new Error("hasManyプロパティは配列である必要があります。");
+function _loadClassProps() {
+  // `classProps` が未定義の場合は空のオブジェクトをセット
+  if (typeof this.constructor.classProps === "undefined") {
+    _classPrivateFieldSet(_classProps, this, {});
+    return; // early return for clarity
   }
-  hasMany.forEach(function (relation, index) {
+
+  // `classProps` がオブジェクトであることを確認
+  if (_typeof(this.constructor.classProps) !== "object" || this.constructor.classProps === null) {
+    throw new Error("[FireModel] 'classProps' \u30D7\u30ED\u30D1\u30C6\u30A3\u306F\u30AA\u30D6\u30B8\u30A7\u30AF\u30C8\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002");
+  }
+
+  // 各プロパティの検証
+  Object.entries(this.constructor.classProps).forEach(function (_ref10) {
+    var _ref11 = _slicedToArray(_ref10, 2),
+      key = _ref11[0],
+      value = _ref11[1];
+    // プロパティがオブジェクトであることを確認
+    if (_typeof(value) !== "object" || value === null) {
+      throw new Error("classProps\u306E\u30D7\u30ED\u30D1\u30C6\u30A3 '".concat(key, "' \u306F\u30AA\u30D6\u30B8\u30A7\u30AF\u30C8\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002"));
+    }
+
+    // 必要なキーの確認
+    var requiredKeys = ["type", "default", "required"];
+    requiredKeys.forEach(function (requiredKey) {
+      if (!(requiredKey in value)) {
+        throw new Error("classProps\u306E\u30D7\u30ED\u30D1\u30C6\u30A3 '".concat(key, "' \u306B '").concat(requiredKey, "' \u304C\u5FC5\u8981\u3067\u3059\u3002"));
+      }
+    });
+
+    // `type` の確認（指定された型のいずれか）
+    var validTypes = [String, Number, Boolean, Object, Array, Function];
+    if (!validTypes.includes(value.type)) {
+      throw new Error("classProps\u306E\u30D7\u30ED\u30D1\u30C6\u30A3 '".concat(key, "' \u306E 'type' \u306F String, Number, Boolean, Object, Array, Function \u306E\u3044\u305A\u308C\u304B\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002"));
+    }
+
+    // `required` が Boolean であることを確認
+    if (typeof value.required !== "boolean") {
+      throw new Error("classProps\u306E\u30D7\u30ED\u30D1\u30C6\u30A3 '".concat(key, "' \u306E 'required' \u306F Boolean \u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002"));
+    }
+  });
+
+  // `classProps` を自身のプロパティにセット
+  _classPrivateFieldSet(_classProps, this, _objectSpread({}, this.constructor.classProps)); // シャローコピーを作成
+}
+/****************************************************************************
+ * サブクラスに定義された `collectionPath` の値を、自身の `#collectionPath` に
+ * 読み込みます。
+ * @throws {Error} サブクラスに `collectionPath` が定義されていない場合、エラーをスローします。
+ * @returns {void}
+ ****************************************************************************/
+function _loadCollectionPath() {
+  if (typeof this.constructor.collectionPath === "undefined") {
+    var sample = "\n        class SubClass extends Firemodel {\n          static collectionPath = 'SubClasses';\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n          constructor(item) {\n            ...\n          }\n        }\n      ";
+    throw new Error("[FireModel] \u30B5\u30D6\u30AF\u30E9\u30B9\u306B'collectionPath'\u304C\u5B9A\u7FA9\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002\n".concat(this.removeIndentation(sample)));
+  }
+  _classPrivateFieldSet(_collectionPath, this, this.constructor.collectionPath);
+}
+/****************************************************************************
+ * サブクラスに定義された `hasMany` プロパティを取得し、自身の `#hasMany` にセットします。
+ * - `hasMany` が未定義の場合は `#hasMany` に空の配列をセットします。
+ * - `hasMany` が配列であることを確認し、各要素の形式もチェックします。
+ * @throws {Error} サブクラスの `hasMany` が配列ではない、または形式が正しくない場合にエラーをスローします。
+ * @returns {void}
+ ****************************************************************************/
+function _loadHasMany() {
+  var _this11 = this;
+  // `hasMany` が未定義の場合は空の配列をセット
+  if (typeof this.constructor.hasMany === "undefined") {
+    _classPrivateFieldSet(_hasMany, this, []);
+    return;
+  }
+
+  // `hasMany` が配列であることを確認
+  if (!Array.isArray(this.constructor.hasMany)) {
+    throw new Error("[FireModel] 'hasMany' \u30D7\u30ED\u30D1\u30C6\u30A3\u306F\u914D\u5217\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002");
+  }
+
+  // 各要素を検証
+  this.constructor.hasMany.forEach(function (relation, index) {
     var requiredKeys = ["collection", "field", "condition", "type"];
-    var allowedKeys = new Set(requiredKeys);
+    var validTypes = ["collection", "subcollection"]; // 有効なタイプを定義
 
     // 各要素がオブジェクトであることを確認
     if (_typeof(relation) !== "object" || relation === null) {
-      throw new Error("hasMany\u30D7\u30ED\u30D1\u30C6\u30A3\u306E\u8981\u7D20\u306F\u30AA\u30D6\u30B8\u30A7\u30AF\u30C8\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9: ".concat(index, ", \u5024: ").concat(JSON.stringify(relation)));
+      throw new Error("hasMany\u30D7\u30ED\u30D1\u30C6\u30A3\u306E\u8981\u7D20\u306F\u30AA\u30D6\u30B8\u30A7\u30AF\u30C8\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3: ".concat(_classPrivateFieldGet(_collectionPath, _this11), ", \u30A4\u30F3\u30C7\u30C3\u30AF\u30B9: ").concat(index, ", \u5024: ").concat(JSON.stringify(relation)));
     }
 
     // 必須のキーがすべて存在することを確認
     requiredKeys.forEach(function (key) {
       if (!(key in relation)) {
-        throw new Error("hasMany\u30D7\u30ED\u30D1\u30C6\u30A3\u306E\u8981\u7D20\u306B\u306F".concat(key, "\u30D7\u30ED\u30D1\u30C6\u30A3\u304C\u5FC5\u8981\u3067\u3059\u3002\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9: ").concat(index, ", \u5024: ").concat(JSON.stringify(relation)));
+        throw new Error("hasMany\u30D7\u30ED\u30D1\u30C6\u30A3\u306E\u8981\u7D20\u306B\u306F'".concat(key, "'\u30D7\u30ED\u30D1\u30C6\u30A3\u304C\u5FC5\u8981\u3067\u3059\u3002\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3: ").concat(_classPrivateFieldGet(_collectionPath, _this11), ", \u30A4\u30F3\u30C7\u30C3\u30AF\u30B9: ").concat(index, ", \u5024: ").concat(JSON.stringify(relation)));
       }
     });
 
-    // 余分なキーがないことを確認
+    // 余分なキーが含まれていないことを確認
     Object.keys(relation).forEach(function (key) {
-      if (!allowedKeys.has(key)) {
-        throw new Error("hasMany\u30D7\u30ED\u30D1\u30C6\u30A3\u306E\u8981\u7D20\u306B\u7121\u52B9\u306A\u30D7\u30ED\u30D1\u30C6\u30A3".concat(key, "\u304C\u542B\u307E\u308C\u3066\u3044\u307E\u3059\u3002\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9: ").concat(index, ", \u5024: ").concat(JSON.stringify(relation)));
+      if (!requiredKeys.includes(key)) {
+        throw new Error("hasMany\u30D7\u30ED\u30D1\u30C6\u30A3\u306E\u8981\u7D20\u306B\u7121\u52B9\u306A\u30D7\u30ED\u30D1\u30C6\u30A3'".concat(key, "'\u304C\u542B\u307E\u308C\u3066\u3044\u307E\u3059\u3002\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3: ").concat(_classPrivateFieldGet(_collectionPath, _this11), ", \u30A4\u30F3\u30C7\u30C3\u30AF\u30B9: ").concat(index, ", \u5024: ").concat(JSON.stringify(relation)));
       }
     });
 
-    // typeプロパティの値を確認
-    var validTypes = ["collection", "subcollection"];
+    // typeプロパティの値が正しいかを確認
     if (!validTypes.includes(relation.type)) {
-      throw new Error("hasMany\u30D7\u30ED\u30D1\u30C6\u30A3\u306Etype\u30D7\u30ED\u30D1\u30C6\u30A3\u306B\u306F'collection'\u307E\u305F\u306F'subcollection'\u306E\u307F\u4F7F\u7528\u3067\u304D\u307E\u3059\u3002\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9: ".concat(index, ", \u5024: ").concat(JSON.stringify(relation)));
+      throw new Error("hasMany\u30D7\u30ED\u30D1\u30C6\u30A3\u306E'type'\u30D7\u30ED\u30D1\u30C6\u30A3\u306B\u306F'collection'\u307E\u305F\u306F'subcollection'\u306E\u307F\u4F7F\u7528\u3067\u304D\u307E\u3059\u3002\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3: ".concat(_classPrivateFieldGet(_collectionPath, _this11), ", \u30A4\u30F3\u30C7\u30C3\u30AF\u30B9: ").concat(index, ", \u5024: ").concat(JSON.stringify(relation)));
+    }
+  });
+
+  // `hasMany` が定義されていて、配列である場合のみセット
+  _classPrivateFieldSet(_hasMany, this, this.constructor.hasMany);
+}
+/****************************************************************************
+ * サブクラスに定義された `useAutonumber` の値を、自身の `#useAutonumber` に
+ * 読み込みます。
+ * - サブクラスで `useAutonumber` が定義されていない場合、`#useAutonumber` は false になります。
+ * - サブクラスの `useAutonumber` がブール値でない場合、エラーをスローします。
+ * @returns {void}
+ ****************************************************************************/
+function _loadUseAutonumber() {
+  // サブクラスで useAutonumber が未定義の場合、false を設定
+  if (typeof this.constructor.useAutonumber === "undefined") {
+    _classPrivateFieldSet(_useAutonumber, this, false);
+    return; // early return for clarity
+  }
+
+  // useAutonumber がブール値でない場合、エラーをスロー
+  if (typeof this.constructor.useAutonumber !== "boolean") {
+    throw new Error("useAutonumber\u30D7\u30ED\u30D1\u30C6\u30A3\u306F\u30D6\u30FC\u30EB\u5024\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002" + "\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3: ".concat(_classPrivateFieldGet(_collectionPath, this), ", \u5024: ").concat(this.constructor.useAutonumber));
+  }
+
+  // useAutonumber がブール値であれば、その値を設定
+  _classPrivateFieldSet(_useAutonumber, this, this.constructor.useAutonumber);
+}
+/****************************************************************************
+ * サブクラスに定義された `logicalDelete` の値を、自身の `#logicalDelete` に
+ * 読み込みます。
+ * - サブクラスで `logicalDelete` が定義されていない場合、`#logicalDelete` は false になります。
+ * - サブクラスの `logicalDelete` がブール値でない場合、エラーをスローします。
+ * @returns {void}
+ ****************************************************************************/
+function _loadLogicalDelete() {
+  // サブクラスで logicalDelete が未定義の場合、false を設定
+  if (typeof this.constructor.logicalDelete === "undefined") {
+    _classPrivateFieldSet(_logicalDelete, this, false);
+    return; // early return for clarity
+  }
+
+  // logicalDelete がブール値でない場合、エラーをスロー
+  if (typeof this.constructor.logicalDelete !== "boolean") {
+    throw new Error("logicalDelete\u30D7\u30ED\u30D1\u30C6\u30A3\u306F\u30D6\u30FC\u30EB\u5024\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002" + "\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3: ".concat(_classPrivateFieldGet(_collectionPath, this), ", \u5024: ").concat(this.constructor.logicalDelete));
+  }
+
+  // logicalDelete がブール値であれば、その値を設定
+  _classPrivateFieldSet(_logicalDelete, this, this.constructor.logicalDelete);
+}
+/****************************************************************************
+ * サブクラスに定義された `tokenFields` の値を、自身の `#tokenFields` に
+ * 読み込みます。
+ * - サブクラスで `tokenFields` が定義されていない場合、`#tokenFields` は空の配列になります。
+ * - サブクラスの `tokenFields` が配列でない場合、エラーをスローします。
+ * - 各要素が文字列でない場合、エラーをスローします。
+ * @returns {void}
+ ****************************************************************************/
+function _loadTokenFields() {
+  // `tokenFields` が未定義の場合は空の配列をセット
+  if (typeof this.constructor.tokenFields === "undefined") {
+    _classPrivateFieldSet(_tokenFields, this, []);
+    return; // early return for clarity
+  }
+
+  // `tokenFields` が配列であることを確認
+  if (!Array.isArray(this.constructor.tokenFields)) {
+    throw new Error("[FireModel] 'tokenFields' \u30D7\u30ED\u30D1\u30C6\u30A3\u306F\u914D\u5217\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002");
+  }
+
+  // `tokenFields` の各要素が文字列であることを確認
+  this.constructor.tokenFields.forEach(function (field, index) {
+    if (typeof field !== "string") {
+      throw new Error("tokenFields\u306E\u8981\u7D20\u306F\u6587\u5B57\u5217\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9: ".concat(index, ", \u5024: ").concat(JSON.stringify(field)));
+    }
+  });
+
+  // `tokenFields` を自身のプロパティにセット
+  _classPrivateFieldSet(_tokenFields, this, this.constructor.tokenFields);
+}
+function _validateProperties() {
+  var _this12 = this;
+  Object.keys(_classPrivateFieldGet(_classProps, this)).forEach(function (key) {
+    var propConfig = _classPrivateFieldGet(_classProps, _this12)[key];
+    // 必須チェック
+    if (propConfig.required && (_this12[key] === undefined || _this12[key] === null || _this12[key] === "")) {
+      throw new Error("".concat(key, "\u306F\u5FC5\u9808\u3067\u3059\u3002"));
+    }
+
+    // バリデーションチェック
+    if (propConfig.validator && !propConfig.validator(_this12[key])) {
+      throw new Error("".concat(key, "\u306E\u5024\u304C\u7121\u52B9\u3067\u3059: ").concat(_this12[key]));
     }
   });
 }
+/****************************************************************************
+ * tokenMapを生成して返します。
+ * - 指定されたフィールドの値からトークンを生成し、トークンマップを作成します。
+ * - フィールドが存在しないか、値が空の場合は無視されます。
+ * - サロゲートペア、特殊文字、および空白文字を除去してトークンを生成します。
+ *
+ * @returns {Object|null} 生成されたtokenMapを返します。対象フィールドがない場合はnullを返します。
+ ****************************************************************************/
 function _generateTokenMap() {
-  var _this11 = this;
+  var _this13 = this;
   if (!_classPrivateFieldGet(_tokenFields, this).length) return null;
   var arr = [];
   _classPrivateFieldGet(_tokenFields, this).forEach(function (fieldName) {
-    if (fieldName in _this11 && _this11[fieldName]) {
-      var target = _this11[fieldName].replace(/[\uD800-\uDBFF]|[\uDC00-\uDFFF]|~|\*|\[|\]|\s+/g, "");
+    if (fieldName in _this13 && _this13[fieldName]) {
+      var target = _this13[fieldName].replace(/[\uD800-\uDBFF]|[\uDC00-\uDFFF]|~|\*|\[|\]|\s+/g, "");
       for (var i = 0; i < target.length; i++) {
         arr.push([target.substring(i, i + 1), true]);
       }
@@ -1766,17 +1850,16 @@ function _setTokenMap(value) {
   // No-op setter to avoid errors during initialization.
   // This can be customized if needed to handle specific logic.
 }
-function _createWithAutonumber(_x4, _x5) {
-  return _createWithAutonumber2.apply(this, arguments);
+function _setAutonumber(_x5, _x6) {
+  return _setAutonumber2.apply(this, arguments);
 }
-function _createWithAutonumber2() {
-  _createWithAutonumber2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee13(transaction, item) {
-    var sender, autonumRef, autonumDoc, num, length, newCode, maxPossibleCode;
+function _setAutonumber2() {
+  _setAutonumber2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee13(transaction, item) {
+    var sender, autonumRef, autonumDoc, autonumData, num, length, newCode, maxPossibleCode;
     return _regeneratorRuntime().wrap(function _callee13$(_context14) {
       while (1) switch (_context14.prev = _context14.next) {
         case 0:
-          /* eslint-disable */
-          sender = "".concat(this.constructor.name, " - createWithAutonumber");
+          sender = "".concat(_classPrivateFieldGet(_collectionPath, this), " - setAutonumber");
           _context14.prev = 1;
           autonumRef = (0, _firestore.doc)(_firebaseInit.firestore, "Autonumbers/".concat(_classPrivateFieldGet(_collectionPath, this)));
           _context14.next = 5;
@@ -1789,38 +1872,44 @@ function _createWithAutonumber2() {
           }
           throw new Error((0, _firestoreMessages.getMessage)(sender, "MISSING_AUTONUMBER", _classPrivateFieldGet(_collectionPath, this)));
         case 8:
-          if (autonumDoc.data().status) {
-            _context14.next = 10;
+          autonumData = autonumDoc.data(); // Autonumberドキュメントのステータスが無効な場合はエラーをスロー
+          if (autonumData.status) {
+            _context14.next = 11;
             break;
           }
           throw new Error((0, _firestoreMessages.getMessage)(sender, "INVALID_AUTONUMBER_STATUS", _classPrivateFieldGet(_collectionPath, this)));
-        case 10:
-          num = autonumDoc.data().current + 1;
-          length = autonumDoc.data().length;
-          newCode = (Array(length).join("0") + num).slice(-length);
+        case 11:
+          // 採番処理
+          num = autonumData.current + 1;
+          length = autonumData.length;
+          newCode = (Array(length).join("0") + num).slice(-length); // 採番可能な最大値に達した場合はエラーをスロー
           maxPossibleCode = Array(length + 1).join("0");
           if (!(newCode === maxPossibleCode)) {
-            _context14.next = 16;
+            _context14.next = 17;
             break;
           }
           throw new Error((0, _firestoreMessages.getMessage)(sender, "NO_MORE_DOCUMENT", _classPrivateFieldGet(_collectionPath, this)));
-        case 16:
-          item[autonumDoc.data().field] = newCode;
-          transaction.update(autonumRef, {
-            current: num
+        case 17:
+          // itemに新しいコードをセット
+          item[autonumData.field] = newCode;
+
+          // currentフィールドの更新処理を行う関数を返す
+          return _context14.abrupt("return", function () {
+            return transaction.update(autonumRef, {
+              current: num
+            });
           });
-          _context14.next = 24;
-          break;
-        case 20:
-          _context14.prev = 20;
+        case 21:
+          _context14.prev = 21;
           _context14.t0 = _context14["catch"](1);
+          // eslint-disable-next-line no-console
           console.error("[".concat(sender, "] ").concat(_context14.t0.message));
           throw _context14.t0;
-        case 24:
+        case 25:
         case "end":
           return _context14.stop();
       }
-    }, _callee13, this, [[1, 20]]);
+    }, _callee13, this, [[1, 21]]);
   }));
-  return _createWithAutonumber2.apply(this, arguments);
+  return _setAutonumber2.apply(this, arguments);
 }
