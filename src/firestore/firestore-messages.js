@@ -53,9 +53,9 @@ const messages = {
   HAS_MANY_INVALID_TYPE:
     "hasManyプロパティの'type'プロパティには'collection'または'subcollection'のみ使用できます。コレクション: %s, インデックス: %s, 値: %s",
   HAS_MANY_INVALID_KEY:
-    "hasManyプロパティの要素に無効なプロパティ'${key}'が含まれています。コレクション: %s, インデックス: %s, 値: %s",
+    "hasManyプロパティの要素に無効なプロパティ'%s'が含まれています。コレクション: %s, インデックス: %s, 値: %s",
   HAS_MANY_REQUIRES_KEY:
-    "hasManyプロパティの要素には'${key}'プロパティが必要です。コレクション: %s, インデックス: %s, 値: %s",
+    "hasManyプロパティの要素には'%s'プロパティが必要です。コレクション: %s, インデックス: %s, 値: %s",
   HAS_MANY_MUST_BE_OBJECT:
     "hasManyプロパティの要素はオブジェクトである必要があります。コレクション: %s, インデックス: %s, 値: %s",
   HAS_MANY_NOT_ARRAY: "hasManyプロパティは配列である必要があります。",
