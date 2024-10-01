@@ -878,19 +878,23 @@ export default class FireModel {
   /****************************************************************************
    * Firestore にドキュメントを書き込みます。
    * - `docId` を指定することで、特定のドキュメントIDを使用して作成することが可能です。
-   * - `useAutonumber` が true の場合、自動採番を利用します。デフォルトは false です。
+   * - `useAutonumber` が true の場合、自動採番を利用します。デフォルトは true ですが、`#useAutonumber` が優先されます。
    * - `transaction` に Firestore のトランザクションオブジェクトを渡すことで、サブクラス側のトランザクション処理を継続します。
    * - `callBack` は、サブクラス側独自のトランザクション処理を実行するための引数です。
    *
    * @param {Object} [options={}] - オプション引数
    * @param {string|null} [options.docId=null] - 作成するドキュメントID。指定しない場合は自動生成されます。
+   * @param {boolean} [options.useAutonumber=true] - 自動採番を行うかどうかです。`#useAutonumber` が優先されます。
    * @param {Object|null} [options.transaction=null] - Firestore のトランザクションオブジェクト。指定しない場合は自動トランザクションを使用します。
    * @param {function|null} [callBack=null] - サブクラス側でトランザクション処理を追加したい場合に指定するコールバック関数。トランザクションオブジェクトが渡されます。
    *
    * @returns {Promise<DocumentReference>} - 作成されたドキュメントの参照
    * @throws {Error} - ドキュメント作成中にエラーが発生した場合
    ****************************************************************************/
-  async create({ docId = null, transaction = null } = {}, callBack = null) {
+  async create(
+    { docId = null, useAutonumber = true, transaction = null } = {},
+    callBack = null
+  ) {
     const sender = `${this.#collectionPath} - create`;
 
     // メッセージ出力
@@ -926,9 +930,10 @@ export default class FireModel {
       const performTransaction = async (txn) => {
         try {
           // 自動採番を行う場合、採番の更新を行う関数を取得
-          const autonumberUpdater = this.#useAutonumber
-            ? await this.#setAutonumber(txn, this)
-            : null;
+          const autonumberUpdater =
+            this.#useAutonumber && useAutonumber
+              ? await this.#setAutonumber(txn, this)
+              : null;
 
           // サブクラスからのトランザクション処理がある場合に実行
           if (callBack) await callBack(txn, this.toObject());
