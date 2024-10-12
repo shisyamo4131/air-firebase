@@ -673,8 +673,18 @@ export default class FireModel {
         else if (typeof item[key] !== "object") {
           this[key] = item[key];
         }
-        // 通常のオブジェクトの場合はディープコピー
-        else {
+        // // 通常のオブジェクトの場合はディープコピー
+        // else {
+        //   this[key] = JSON.parse(JSON.stringify(item[key]));
+        // }
+        /**
+         * 2024-10-12 修正
+         * - 値が toDate を持っているようであれば Date オブジェクトに変換
+         * - それ以外の場合はディープコピー
+         */
+        else if (item[key]?.toDate) {
+          this[key] = item[key].toDate();
+        } else {
           this[key] = JSON.parse(JSON.stringify(item[key]));
         }
       }

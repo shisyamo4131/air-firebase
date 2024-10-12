@@ -359,6 +359,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
       var customClassMap = this.constructor.customClassMap || {};
       Object.keys(item).forEach(function (key) {
         if (key in _this && key !== "createAt" && key !== "updateAt") {
+          var _item$key;
           // 配列の場合、配列の各要素にカスタムクラスを適用
           if (Array.isArray(item[key]) && customClassMap[key]) {
             _this[key] = item[key].map(function (element) {
@@ -373,8 +374,17 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
           else if (_typeof(item[key]) !== "object") {
             _this[key] = item[key];
           }
-          // 通常のオブジェクトの場合はディープコピー
-          else {
+          // // 通常のオブジェクトの場合はディープコピー
+          // else {
+          //   this[key] = JSON.parse(JSON.stringify(item[key]));
+          // }
+          /**
+           * 2024-10-12 修正
+           * - 値が toDate を持っているようであれば Date オブジェクトに変換
+           * - それ以外の場合はディープコピー
+           */else if ((_item$key = item[key]) !== null && _item$key !== void 0 && _item$key.toDate) {
+            _this[key] = item[key].toDate();
+          } else {
             _this[key] = JSON.parse(JSON.stringify(item[key]));
           }
         }
@@ -600,12 +610,13 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
     /****************************************************************************
      * Firestore にドキュメントを書き込みます。
      * - `docId` を指定することで、特定のドキュメントIDを使用して作成することが可能です。
-     * - `useAutonumber` が true の場合、自動採番を利用します。デフォルトは false です。
+     * - `useAutonumber` が true の場合、自動採番を利用します。デフォルトは true ですが、`#useAutonumber` が優先されます。
      * - `transaction` に Firestore のトランザクションオブジェクトを渡すことで、サブクラス側のトランザクション処理を継続します。
      * - `callBack` は、サブクラス側独自のトランザクション処理を実行するための引数です。
      *
      * @param {Object} [options={}] - オプション引数
      * @param {string|null} [options.docId=null] - 作成するドキュメントID。指定しない場合は自動生成されます。
+     * @param {boolean} [options.useAutonumber=true] - 自動採番を行うかどうかです。`#useAutonumber` が優先されます。
      * @param {Object|null} [options.transaction=null] - Firestore のトランザクションオブジェクト。指定しない場合は自動トランザクションを使用します。
      * @param {function|null} [callBack=null] - サブクラス側でトランザクション処理を追加したい場合に指定するコールバック関数。トランザクションオブジェクトが渡されます。
      *
@@ -620,6 +631,8 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
         var _ref3,
           _ref3$docId,
           docId,
+          _ref3$useAutonumber,
+          useAutonumber,
           _ref3$transaction,
           transaction,
           callBack,
@@ -634,7 +647,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
         return _regeneratorRuntime().wrap(function _callee2$(_context2) {
           while (1) switch (_context2.prev = _context2.next) {
             case 0:
-              _ref3 = _args2.length > 0 && _args2[0] !== undefined ? _args2[0] : {}, _ref3$docId = _ref3.docId, docId = _ref3$docId === void 0 ? null : _ref3$docId, _ref3$transaction = _ref3.transaction, transaction = _ref3$transaction === void 0 ? null : _ref3$transaction;
+              _ref3 = _args2.length > 0 && _args2[0] !== undefined ? _args2[0] : {}, _ref3$docId = _ref3.docId, docId = _ref3$docId === void 0 ? null : _ref3$docId, _ref3$useAutonumber = _ref3.useAutonumber, useAutonumber = _ref3$useAutonumber === void 0 ? true : _ref3$useAutonumber, _ref3$transaction = _ref3.transaction, transaction = _ref3$transaction === void 0 ? null : _ref3$transaction;
               callBack = _args2.length > 1 && _args2[1] !== undefined ? _args2[1] : null;
               sender = "".concat(_classPrivateFieldGet(_collectionPath, this), " - create"); // メッセージ出力
               msg = docId ? "CREATE_CALLED" : "CREATE_CALLED_NO_DOCID";
@@ -673,7 +686,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
                     while (1) switch (_context.prev = _context.next) {
                       case 0:
                         _context.prev = 0;
-                        if (!_classPrivateFieldGet(_useAutonumber, _this6)) {
+                        if (!(_classPrivateFieldGet(_useAutonumber, _this6) && useAutonumber)) {
                           _context.next = 7;
                           break;
                         }
