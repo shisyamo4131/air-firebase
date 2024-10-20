@@ -908,8 +908,8 @@ export default class FireModel {
     const sender = `${this.#collectionPath} - create`;
 
     // メッセージ出力
-    const msg = docId ? "CREATE_CALLED" : "CREATE_CALLED_NO_DOCID";
-    console.info(getMessage(sender, msg, docId)); // eslint-disable-line no-console
+    // const msg = docId ? "CREATE_CALLED" : "CREATE_CALLED_NO_DOCID";
+    // console.info(getMessage(sender, msg, docId)); // eslint-disable-line no-console
 
     // callBack が null 以外の場合は関数であることを確認
     if (callBack !== null && typeof callBack !== "function") {
@@ -1051,7 +1051,7 @@ export default class FireModel {
     }
 
     // eslint-disable-next-line no-console
-    console.info(getMessage(sender, "FETCH_CALLED", docId));
+    // console.info(getMessage(sender, "FETCH_CALLED", docId));
 
     try {
       const colRef = collection(firestore, this.#collectionPath);
@@ -1086,7 +1086,7 @@ export default class FireModel {
     if (!docId) {
       throw new Error(getMessage(sender, "FETCH_DOC_CALLED_NO_DOCID"));
     }
-    console.info(getMessage(sender, "FETCH_DOC_CALLED", docId));
+    // console.info(getMessage(sender, "FETCH_DOC_CALLED", docId));
     try {
       const colRef = collection(firestore, this.#collectionPath);
       const docRef = doc(colRef, docId).withConverter(this.converter());
@@ -1190,8 +1190,8 @@ export default class FireModel {
   async update({ transaction = null } = {}, callBack = null) {
     const sender = `${this.#collectionPath} - update`;
 
-    // 更新呼び出しのログ出力
-    console.info(getMessage(sender, "UPDATE_CALLED", this.docId)); // eslint-disable-line no-console
+    // // 更新呼び出しのログ出力
+    // console.info(getMessage(sender, "UPDATE_CALLED", this.docId)); // eslint-disable-line no-console
 
     // callBackがnull以外の場合は関数であることを確認
     if (callBack !== null && typeof callBack !== "function") {
@@ -1304,8 +1304,8 @@ export default class FireModel {
   async delete({ transaction = null } = {}, callBack = null) {
     const sender = `${this.#collectionPath} - delete`;
 
-    // 削除処理のログを出力
-    console.info(getMessage(sender, "DELETE_CALLED", this.docId)); // eslint-disable-line no-console
+    // // 削除処理のログを出力
+    // console.info(getMessage(sender, "DELETE_CALLED", this.docId)); // eslint-disable-line no-console
 
     // callBackがnull以外の場合は関数であることを確認
     if (callBack !== null && typeof callBack !== "function") {
@@ -1397,7 +1397,7 @@ export default class FireModel {
    ****************************************************************************/
   async deleteAll(batchSize = 500, pauseDuration = 500) {
     const sender = `${this.#collectionPath} - deleteAll`;
-    console.info(getMessage(sender, "DELETE_ALL_CALLED"));
+    // console.info(getMessage(sender, "DELETE_ALL_CALLED"));
     // 引数のバリデーション
     if (typeof batchSize !== "number" || batchSize <= 0) {
       throw new Error(getMessage(sender, "DELETE_ALL_INVALID_BATCH_SIZE"));
@@ -1443,9 +1443,10 @@ export default class FireModel {
     const sender = `${this.#collectionPath} - restore`;
     if (!docId) {
       throw new Error(getMessage(sender, "RESTORE_CALLED_NO_DOCID"));
-    } else {
-      console.info(getMessage(sender, "RESTORE_CALLED", docId));
     }
+    // else {
+    //   console.info(getMessage(sender, "RESTORE_CALLED", docId));
+    // }
     try {
       const archivePath = `${this.#collectionPath}_archive`;
       const archiveColRef = collection(firestore, archivePath);
@@ -1479,7 +1480,7 @@ export default class FireModel {
   unsubscribe() {
     /* eslint-disable */
     const sender = `${this.#collectionPath} - unsubscribe`;
-    console.info(getMessage(sender, "UNSUBSCRIBE_CALLED"));
+    // console.info(getMessage(sender, "UNSUBSCRIBE_CALLED"));
     if (this.#listener) {
       this.#listener();
       this.#listener = null;
@@ -1502,7 +1503,7 @@ export default class FireModel {
     if (!docId) {
       throw new Error(getMessage(sender, "SUBSCRIBE_CALLED_NO_DOCID"));
     }
-    console.info(getMessage(sender, "SUBSCRIBE_CALLED", docId));
+    // console.info(getMessage(sender, "SUBSCRIBE_CALLED", docId));
     try {
       if (this.#listener) {
         console.info(getMessage(sender, "LISTENER_HAS_SET"));
@@ -1536,8 +1537,8 @@ export default class FireModel {
   subscribeDocs(constraints = []) {
     const sender = `${this.#collectionPath} - subscribeDocs`;
 
-    // eslint-disable-next-line no-console
-    console.info(getMessage(sender, "SUBSCRIBE_DOCS_CALLED"));
+    // // eslint-disable-next-line no-console
+    // console.info(getMessage(sender, "SUBSCRIBE_DOCS_CALLED"));
 
     try {
       if (this.#listener) {
