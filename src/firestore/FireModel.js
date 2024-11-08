@@ -1055,7 +1055,7 @@ export default class FireModel {
 
     try {
       const colRef = collection(firestore, this.#collectionPath);
-      const docRef = doc(colRef, docId);
+      const docRef = doc(colRef, docId).withConverter(this.converter());
       const docSnapshot = await getDoc(docRef);
       if (!docSnapshot.exists()) {
         // eslint-disable-next-line no-console

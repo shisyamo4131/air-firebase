@@ -813,7 +813,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
             case 4:
               _context3.prev = 4;
               colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
-              docRef = (0, _firestore.doc)(colRef, docId);
+              docRef = (0, _firestore.doc)(colRef, docId).withConverter(this.converter());
               _context3.next = 9;
               return (0, _firestore.getDoc)(docRef);
             case 9:
