@@ -604,6 +604,92 @@ export default class FireModel {
    * @param {Object} item - 初期化するデータモデルのプロパティを含むオブジェクト
    * @returns {void}
    ****************************************************************************/
+  // initialize(item = {}) {
+  //   /**
+  //    * classPropsに定義されているプロパティを初期化
+  //    */
+  //   Object.keys(this.#classProps).forEach((key) => {
+  //     const propDefault = this.#classProps[key].default;
+  //     this[key] =
+  //       typeof propDefault === "function" ? propDefault() : propDefault;
+  //   });
+
+  //   // itemがnullやundefinedであれば終了
+  //   if (!item) return;
+
+  //   this.docId = item?.docId || "";
+  //   this.uid = item?.uid || "";
+
+  //   /**
+  //    * createAt、updateAtは型をチェックし、Dateオブジェクトに変換して初期化
+  //    * FirestoreにDateオブジェクトを保存すると、Firestore timestampとして登録されるため、
+  //    * これをtoDate()を使用してDateオブジェクトに変換します。
+  //    */
+  //   if (item?.createAt instanceof Date) {
+  //     this.createAt = item.createAt;
+  //   } else if (item?.createAt?.toDate) {
+  //     this.createAt = item.createAt.toDate();
+  //   } else {
+  //     this.createAt = null;
+  //   }
+  //   if (item?.updateAt instanceof Date) {
+  //     this.updateAt = item.updateAt;
+  //   } else if (item?.updateAt?.toDate) {
+  //     this.updateAt = item.updateAt.toDate();
+  //   } else {
+  //     this.updateAt = null;
+  //   }
+
+  //   /**
+  //    * `item`が保有するすべてのプロパティについて、自身の同一名プロパティに値を複製します。
+  //    * - オブジェクトの参照渡しを避けるためJSON.parse(JSON.stringify(item[key]))を使っていましたが、
+  //    *   プロパティの値がカスタムクラスであった場合に、プレーンなオブジェクトに変換されていまっていました。
+  //    * - サブクラスで`customClassMap`を用意し、プロパティにカスタムクラスが定義されている場合、
+  //    *   当該クラスのインスタンスをセットするようにしました。
+  //    */
+
+  //   // Object.keys(item).forEach((key) => {
+  //   //   if (key in this && key !== "createAt" && key !== "updateAt") {
+  //   //     this[key] = JSON.parse(JSON.stringify(item[key]));
+  //   //   }
+  //   // });
+
+  //   // サブクラスで定義されたcustomClassMapを取得
+  //   const customClassMap = this.constructor.customClassMap || {};
+
+  //   Object.keys(item).forEach((key) => {
+  //     if (key in this && key !== "createAt" && key !== "updateAt") {
+  //       // 配列の場合、配列の各要素にカスタムクラスを適用
+  //       if (Array.isArray(item[key]) && customClassMap[key]) {
+  //         this[key] = item[key].map((element) => {
+  //           return new customClassMap[key](element);
+  //         });
+  //       }
+  //       // カスタムクラスのマッピングがある場合、そのクラスで再初期化
+  //       else if (customClassMap[key] && item[key] instanceof Object) {
+  //         this[key] = new customClassMap[key](item[key]);
+  //       }
+  //       // オブジェクト以外のプリミティブ型（文字列、数値、ブールなど）の場合
+  //       else if (typeof item[key] !== "object") {
+  //         this[key] = item[key];
+  //       }
+  //       // // 通常のオブジェクトの場合はディープコピー
+  //       // else {
+  //       //   this[key] = JSON.parse(JSON.stringify(item[key]));
+  //       // }
+  //       /**
+  //        * 2024-10-12 修正
+  //        * - 値が toDate を持っているようであれば Date オブジェクトに変換
+  //        * - それ以外の場合はディープコピー
+  //        */
+  //       else if (item[key]?.toDate) {
+  //         this[key] = item[key].toDate();
+  //       } else {
+  //         this[key] = JSON.parse(JSON.stringify(item[key]));
+  //       }
+  //     }
+  //   });
+  // }
   initialize(item = {}) {
     /**
      * classPropsに定義されているプロパティを初期化
@@ -641,21 +727,25 @@ export default class FireModel {
     }
 
     /**
+     * サブクラスで定義されたcustomClassMapを取得
+     * すべてのプロパティについて、`item` が持っていない場合にはデフォルトで初期化
+     */
+    const customClassMap = this.constructor.customClassMap || {};
+
+    Object.keys(customClassMap).forEach((key) => {
+      if (!(key in item)) {
+        // Firestoreのドキュメントにプロパティが存在しない場合でもカスタムクラスを初期化
+        this[key] = new customClassMap[key]();
+      }
+    });
+
+    /**
      * `item`が保有するすべてのプロパティについて、自身の同一名プロパティに値を複製します。
      * - オブジェクトの参照渡しを避けるためJSON.parse(JSON.stringify(item[key]))を使っていましたが、
      *   プロパティの値がカスタムクラスであった場合に、プレーンなオブジェクトに変換されていまっていました。
      * - サブクラスで`customClassMap`を用意し、プロパティにカスタムクラスが定義されている場合、
      *   当該クラスのインスタンスをセットするようにしました。
      */
-
-    // Object.keys(item).forEach((key) => {
-    //   if (key in this && key !== "createAt" && key !== "updateAt") {
-    //     this[key] = JSON.parse(JSON.stringify(item[key]));
-    //   }
-    // });
-
-    // サブクラスで定義されたcustomClassMapを取得
-    const customClassMap = this.constructor.customClassMap || {};
 
     Object.keys(item).forEach((key) => {
       if (key in this && key !== "createAt" && key !== "updateAt") {
@@ -672,17 +762,12 @@ export default class FireModel {
         // オブジェクト以外のプリミティブ型（文字列、数値、ブールなど）の場合
         else if (typeof item[key] !== "object") {
           this[key] = item[key];
-        }
-        // // 通常のオブジェクトの場合はディープコピー
-        // else {
-        //   this[key] = JSON.parse(JSON.stringify(item[key]));
-        // }
+        } else if (item[key]?.toDate) {
         /**
          * 2024-10-12 修正
          * - 値が toDate を持っているようであれば Date オブジェクトに変換
          * - それ以外の場合はディープコピー
          */
-        else if (item[key]?.toDate) {
           this[key] = item[key].toDate();
         } else {
           this[key] = JSON.parse(JSON.stringify(item[key]));
