@@ -733,8 +733,8 @@ export default class FireModel {
     const customClassMap = this.constructor.customClassMap || {};
 
     Object.keys(customClassMap).forEach((key) => {
-      if (!(key in item)) {
-        // Firestoreのドキュメントにプロパティが存在しない場合でもカスタムクラスを初期化
+      if (!(key in item) && !Array.isArray(this[key])) {
+        // Firestoreのドキュメントにプロパティが存在せず、かつ現在の値が配列でない場合にのみ初期化
         this[key] = new customClassMap[key]();
       }
     });
@@ -763,11 +763,11 @@ export default class FireModel {
         else if (typeof item[key] !== "object") {
           this[key] = item[key];
         } else if (item[key]?.toDate) {
-        /**
-         * 2024-10-12 修正
-         * - 値が toDate を持っているようであれば Date オブジェクトに変換
-         * - それ以外の場合はディープコピー
-         */
+          /**
+           * 2024-10-12 修正
+           * - 値が toDate を持っているようであれば Date オブジェクトに変換
+           * - それ以外の場合はディープコピー
+           */
           this[key] = item[key].toDate();
         } else {
           this[key] = JSON.parse(JSON.stringify(item[key]));

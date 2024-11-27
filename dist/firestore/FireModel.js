@@ -433,8 +433,8 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
        */
       var customClassMap = this.constructor.customClassMap || {};
       Object.keys(customClassMap).forEach(function (key) {
-        if (!(key in item)) {
-          // Firestoreのドキュメントにプロパティが存在しない場合でもカスタムクラスを初期化
+        if (!(key in item) && !Array.isArray(_this[key])) {
+          // Firestoreのドキュメントにプロパティが存在せず、かつ現在の値が配列でない場合にのみ初期化
           _this[key] = new customClassMap[key]();
         }
       });
