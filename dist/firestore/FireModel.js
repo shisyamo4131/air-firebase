@@ -966,56 +966,69 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
             case 0:
               constraints = _args5.length > 0 && _args5[0] !== undefined ? _args5[0] : [];
               queryConstraints = []; // constraintsが文字列である場合、N-gram検索用のクエリを生成
-              if (typeof constraints === "string") {
-                tokens = [];
-                target = constraints.replace(/[\uD800-\uDBFF]|[\uDC00-\uDFFF]|~|\*|\[|\]|\s+/g, ""); // 1文字と2文字のトークンを生成
-                for (i = 0; i < target.length; i++) {
-                  tokens.push(target.substring(i, i + 1));
-                }
-                for (_i = 0; _i < target.length - 1; _i++) {
-                  tokens.push(target.substring(_i, _i + 2));
-                }
-
-                // tokenMapに含まれるトークンでFirestoreクエリを実行するためのwhere条件を追加
-                tokens.forEach(function (token) {
-                  queryConstraints.push((0, _firestore.where)("tokenMap.".concat(token), "==", true));
-                });
-              } else {
-                // 新バージョンのfetchDocsでのクエリ生成
-                validQueryTypes = ["where", "orderBy", "limit"];
-                constraints.forEach(function (constraint) {
-                  var _constraint = _toArray(constraint),
-                    type = _constraint[0],
-                    args = _constraint.slice(1);
-                  switch (type) {
-                    case "where":
-                      queryConstraints.push(_firestore.where.apply(void 0, _toConsumableArray(args)));
-                      break;
-                    case "orderBy":
-                      queryConstraints.push((0, _firestore.orderBy)(args[0], args[1] || "asc"));
-                      break;
-                    case "limit":
-                      queryConstraints.push((0, _firestore.limit)(args[0]));
-                      break;
-                    default:
-                      // eslint-disable-next-line no-console
-                      console.warn("Unknown query type: ".concat(type, ". Valid query types are: ").concat(validQueryTypes.join(", ")));
-                      throw new Error("Invalid query type: ".concat(type, ". Please use one of: ").concat(validQueryTypes.join(", ")));
-                  }
-                });
+              if (!(typeof constraints === "string")) {
+                _context5.next = 10;
+                break;
+              }
+              tokens = [];
+              target = constraints.replace(/[\uD800-\uDBFF]|[\uDC00-\uDFFF]|~|\*|\[|\]|\s+/g, ""); // 1文字と2文字のトークンを生成
+              for (i = 0; i < target.length; i++) {
+                tokens.push(target.substring(i, i + 1));
+              }
+              for (_i = 0; _i < target.length - 1; _i++) {
+                tokens.push(target.substring(_i, _i + 2));
               }
 
+              // tokenMapに含まれるトークンでFirestoreクエリを実行するためのwhere条件を追加
+              tokens.forEach(function (token) {
+                queryConstraints.push((0, _firestore.where)("tokenMap.".concat(token), "==", true));
+              });
+              _context5.next = 17;
+              break;
+            case 10:
+              if (!Array.isArray(constraints)) {
+                _context5.next = 15;
+                break;
+              }
+              // 新バージョンのfetchDocsでのクエリ生成
+              validQueryTypes = ["where", "orderBy", "limit"];
+              constraints.forEach(function (constraint) {
+                var _constraint = _toArray(constraint),
+                  type = _constraint[0],
+                  args = _constraint.slice(1);
+                switch (type) {
+                  case "where":
+                    queryConstraints.push(_firestore.where.apply(void 0, _toConsumableArray(args)));
+                    break;
+                  case "orderBy":
+                    queryConstraints.push((0, _firestore.orderBy)(args[0], args[1] || "asc"));
+                    break;
+                  case "limit":
+                    queryConstraints.push((0, _firestore.limit)(args[0]));
+                    break;
+                  default:
+                    // eslint-disable-next-line no-console
+                    console.warn("Unknown query type: ".concat(type, ". Valid query types are: ").concat(validQueryTypes.join(", ")));
+                    throw new Error("Invalid query type: ".concat(type, ". Please use one of: ").concat(validQueryTypes.join(", ")));
+                }
+              });
+              _context5.next = 17;
+              break;
+            case 15:
+              console.warn((0, _firestoreMessages.getMessage)(sender, "CONSTRAINTS_MUST_BE_STRING_OR_ARRAY"));
+              return _context5.abrupt("return", []);
+            case 17:
               // Firestoreクエリの実行
               colRef = (0, _firestore.collection)(_firebaseInit.firestore, _classPrivateFieldGet(_collectionPath, this));
               q = _firestore.query.apply(void 0, [colRef].concat(queryConstraints)).withConverter(this.converter());
-              _context5.next = 7;
+              _context5.next = 21;
               return (0, _firestore.getDocs)(q);
-            case 7:
+            case 21:
               querySnapshot = _context5.sent;
               return _context5.abrupt("return", querySnapshot.docs.map(function (doc) {
                 return doc.data();
               }));
-            case 9:
+            case 23:
             case "end":
               return _context5.stop();
           }
@@ -1652,7 +1665,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
           tokens.forEach(function (token) {
             queryConstraints.push((0, _firestore.where)("tokenMap.".concat(token), "==", true));
           });
-        } else {
+        } else if (Array.isArray(constraints)) {
           // 通常のクエリ条件（where, orderBy, limit）を処理
           var validQueryTypes = ["where", "orderBy", "limit"];
           constraints.forEach(function (constraint) {
@@ -1675,6 +1688,9 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
                 throw new Error("Invalid query type: ".concat(type, ". Please use one of: ").concat(validQueryTypes.join(", ")));
             }
           });
+        } else {
+          console.warn((0, _firestoreMessages.getMessage)(sender, "CONSTRAINTS_MUST_BE_STRING_OR_ARRAY"));
+          return;
         }
 
         // Firestoreコレクションに対してリアルタイムリスナーを設定

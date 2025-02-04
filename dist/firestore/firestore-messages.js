@@ -20,6 +20,7 @@ var messages = {
   CLASS_PROP_TYPE_INVALID: "'classProps' のプロパティ '%s' の 'type' は String, Number, Boolean, Object, Array, Function のいずれかである必要があります。",
   CLASS_PROP_REQUIRED_INVALID: "'classProps' のプロパティ '%s' の 'required' は Boolean である必要があります。",
   CLASS_PROPS_MUST_BE_OBJECT: "'classProps' プロパティはオブジェクトである必要があります。",
+  CONSTRAINTS_MUST_BE_STRING_OR_ARRAY: "constraints は文字列、または配列である必要があります。",
   COULD_NOT_DELETE_CHILD_EXIST: "関連するドキュメントが%sコレクションに存在するために削除できません。",
   CREATE_CALLED: "create()が呼び出されました。ドキュメントIDは%sです。",
   CREATE_CALLED_NO_DOCID: "create()が呼び出されました。ドキュメントIDは指定されていません。",

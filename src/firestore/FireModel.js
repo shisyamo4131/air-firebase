@@ -1157,7 +1157,7 @@ export default class FireModel {
       tokens.forEach((token) => {
         queryConstraints.push(where(`tokenMap.${token}`, "==", true));
       });
-    } else {
+    } else if (Array.isArray(constraints)) {
       // 新バージョンのfetchDocsでのクエリ生成
       const validQueryTypes = ["where", "orderBy", "limit"];
       constraints.forEach((constraint) => {
@@ -1186,6 +1186,9 @@ export default class FireModel {
             );
         }
       });
+    } else {
+      console.warn(getMessage(sender, "CONSTRAINTS_MUST_BE_STRING_OR_ARRAY"));
+      return [];
     }
 
     // Firestoreクエリの実行
@@ -1590,7 +1593,7 @@ export default class FireModel {
         tokens.forEach((token) => {
           queryConstraints.push(where(`tokenMap.${token}`, "==", true));
         });
-      } else {
+      } else if (Array.isArray(constraints)) {
         // 通常のクエリ条件（where, orderBy, limit）を処理
         const validQueryTypes = ["where", "orderBy", "limit"];
         constraints.forEach((constraint) => {
@@ -1619,6 +1622,9 @@ export default class FireModel {
               );
           }
         });
+      } else {
+        console.warn(getMessage(sender, "CONSTRAINTS_MUST_BE_STRING_OR_ARRAY"));
+        return;
       }
 
       // Firestoreコレクションに対してリアルタイムリスナーを設定
