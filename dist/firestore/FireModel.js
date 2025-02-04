@@ -229,7 +229,6 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
     _assertClassBrand(_FireModel_brand, this, _loadLogicalDelete).call(this);
     _assertClassBrand(_FireModel_brand, this, _loadHasMany).call(this);
     _assertClassBrand(_FireModel_brand, this, _loadTokenFields).call(this);
-    this.initialize(_item);
     Object.defineProperties(this, {
       tokenMap: {
         enumerable: true,
@@ -238,6 +237,7 @@ var FireModel = exports["default"] = /*#__PURE__*/function () {
         set: _assertClassBrand(_FireModel_brand, this, _setTokenMap).bind(this)
       }
     });
+    this.initialize(_item);
   }
 
   /****************************************************************************
