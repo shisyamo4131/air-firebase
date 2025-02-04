@@ -1125,67 +1125,96 @@ export default class FireModel {
     /* eslint-enable */
   }
 
+  /**
+   * クエリ条件の配列を受け取り、Firestore のクエリオブジェクト配列を生成して返します
+   * @param {Array} constraints - クエリ条件の配列
+   * @returns {Array<Object>} - クエリオブジェクトの配列
+   * @throws {Error} 不明なクエリタイプが指定された場合
+   */
+  #createQuerys(constraints) {
+    const result = [];
+    const validQueryTypes = ["where", "orderBy", "limit"];
+    constraints.forEach((constraint) => {
+      const [type, ...args] = constraint;
+      switch (type) {
+        case "where":
+          result.push(where(...args));
+          break;
+        case "orderBy":
+          result.push(orderBy(args[0], args[1] || "asc"));
+          break;
+        case "limit":
+          result.push(limit(args[0]));
+          break;
+        default:
+          // eslint-disable-next-line no-console
+          console.warn(
+            `Unknown query type: ${type}. Valid query types are: ${validQueryTypes.join(
+              ", "
+            )}`
+          );
+          throw new Error(
+            `Invalid query type: ${type}. Please use one of: ${validQueryTypes.join(
+              ", "
+            )}`
+          );
+      }
+    });
+    return result;
+  }
+
+  /**
+   * 文字列を受け取り、Firestore の tokenMap による検索を行うためのクエリオブジェクトの
+   * 配列を返します。
+   * @param {string} constraints - tokenMap による検索に使用する文字列
+   * @returns {Array<Object>} - クエリオブジェクトの配列
+   */
+  #createTokenMapQuerys(constraints) {
+    const result = [];
+    const tokens = [];
+    const target = constraints.replace(
+      /[\uD800-\uDBFF]|[\uDC00-\uDFFF]|~|\*|\[|\]|\s+/g,
+      ""
+    );
+
+    // 1文字と2文字のトークンを生成
+    for (let i = 0; i < target.length; i++) {
+      tokens.push(target.substring(i, i + 1));
+    }
+    for (let i = 0; i < target.length - 1; i++) {
+      tokens.push(target.substring(i, i + 2));
+    }
+
+    // tokenMapに含まれるトークンでFirestoreクエリを実行するためのwhere条件を追加
+    tokens.forEach((token) => {
+      result.push(where(`tokenMap.${token}`, "==", true));
+    });
+
+    return result;
+  }
+
   /****************************************************************************
-   * Firestoreコレクションから条件に一致するドキュメントを取得します。
-   * - クエリ形式に応じて、fetchDocsOldを呼び出すか、新バージョンのロジックを実行します。
-   * - クエリ条件が文字列であった場合、tokenMapを利用したNgram検索を実行します。
+   * Firestore から条件に一致するドキュメントを取得します。
+   * - 引数 constraints が文字列であった場合、tokenMap による N-gram 検索が実行されます。
+   *   追加の条件は options で指定可能です。
+   * - 引数 constraints が配列であった場合は配列内の各要素で指定された条件をもとにクエリを実行します。
    *
-   * @param {Array|string} constraints - クエリ条件の配列（新形式）または検索用の文字列
+   * @param {Array|string} constraints - クエリ条件の配列または検索用の文字列
+   * @param {Array} options - 追加のクエリ条件の配列（constraints が配列の場合は無視されます。）
    * @returns {Promise<Array<Object>>} - 取得したドキュメントのデータで初期化されたオブジェクトの配列
    * @throws {Error} 不明なクエリタイプが指定された場合
    ****************************************************************************/
-  async fetchDocs(constraints = []) {
+  async fetchDocs(constraints = [], options = []) {
     const queryConstraints = [];
 
     // constraintsが文字列である場合、N-gram検索用のクエリを生成
     if (typeof constraints === "string") {
-      const tokens = [];
-      const target = constraints.replace(
-        /[\uD800-\uDBFF]|[\uDC00-\uDFFF]|~|\*|\[|\]|\s+/g,
-        ""
-      );
+      queryConstraints.push(...this.#createTokenMapQuerys(constraints));
 
-      // 1文字と2文字のトークンを生成
-      for (let i = 0; i < target.length; i++) {
-        tokens.push(target.substring(i, i + 1));
-      }
-      for (let i = 0; i < target.length - 1; i++) {
-        tokens.push(target.substring(i, i + 2));
-      }
-
-      // tokenMapに含まれるトークンでFirestoreクエリを実行するためのwhere条件を追加
-      tokens.forEach((token) => {
-        queryConstraints.push(where(`tokenMap.${token}`, "==", true));
-      });
+      // options で指定されたクエリ条件を追加
+      queryConstraints.push(...this.#createQuerys(options));
     } else if (Array.isArray(constraints)) {
-      // 新バージョンのfetchDocsでのクエリ生成
-      const validQueryTypes = ["where", "orderBy", "limit"];
-      constraints.forEach((constraint) => {
-        const [type, ...args] = constraint;
-        switch (type) {
-          case "where":
-            queryConstraints.push(where(...args));
-            break;
-          case "orderBy":
-            queryConstraints.push(orderBy(args[0], args[1] || "asc"));
-            break;
-          case "limit":
-            queryConstraints.push(limit(args[0]));
-            break;
-          default:
-            // eslint-disable-next-line no-console
-            console.warn(
-              `Unknown query type: ${type}. Valid query types are: ${validQueryTypes.join(
-                ", "
-              )}`
-            );
-            throw new Error(
-              `Invalid query type: ${type}. Please use one of: ${validQueryTypes.join(
-                ", "
-              )}`
-            );
-        }
-      });
+      queryConstraints.push(...this.#createQuerys(constraints));
     } else {
       console.warn(getMessage(sender, "CONSTRAINTS_MUST_BE_STRING_OR_ARRAY"));
       return [];
@@ -1552,17 +1581,17 @@ export default class FireModel {
 
   /****************************************************************************
    * Firestoreコレクションに対するリアルタイムリスナーを設定し、ドキュメントの変化を監視します。
-   * - クエリ条件が文字列であった場合、tokenMapを利用したN-gram検索を実行します。
-   * - クエリ条件の中身が関数（function）の場合はsubscribeDocsOldを呼び出します。
+   * - 引数 constraints が文字列であった場合、tokenMap による N-gram 検索が実行されます。
+   *   追加の条件は options で指定可能です。
+   * - 引数 constraints が配列であった場合は配列内の各要素で指定された条件をもとにクエリを実行します。
    *
    * @param {Array|string} constraints - クエリ条件の配列（新形式）または検索用の文字列
+   * @param {Array} options - 追加のクエリ条件の配列（constraints が配列の場合は無視されます。）
    * @returns {Array<Object>} - リアルタイムで監視しているドキュメントのデータが格納された配列
+   * @throws {Error} 不明なクエリタイプが指定された場合
    ****************************************************************************/
-  subscribeDocs(constraints = []) {
+  subscribeDocs(constraints = [], options = []) {
     const sender = `${this.#collectionPath} - subscribeDocs`;
-
-    // // eslint-disable-next-line no-console
-    // console.info(getMessage(sender, "SUBSCRIBE_DOCS_CALLED"));
 
     try {
       if (this.#listener) {
@@ -1575,53 +1604,58 @@ export default class FireModel {
 
       // constraintsが文字列である場合、N-gram検索用のクエリを生成
       if (typeof constraints === "string") {
-        const tokens = [];
-        const target = constraints.replace(
-          /[\uD800-\uDBFF]|[\uDC00-\uDFFF]|~|\*|\[|\]|\s+/g,
-          ""
-        );
+        // const tokens = [];
+        // const target = constraints.replace(
+        //   /[\uD800-\uDBFF]|[\uDC00-\uDFFF]|~|\*|\[|\]|\s+/g,
+        //   ""
+        // );
 
-        // 1文字と2文字のトークンを生成
-        for (let i = 0; i < target.length; i++) {
-          tokens.push(target.substring(i, i + 1));
-        }
-        for (let i = 0; i < target.length - 1; i++) {
-          tokens.push(target.substring(i, i + 2));
-        }
+        // // 1文字と2文字のトークンを生成
+        // for (let i = 0; i < target.length; i++) {
+        //   tokens.push(target.substring(i, i + 1));
+        // }
+        // for (let i = 0; i < target.length - 1; i++) {
+        //   tokens.push(target.substring(i, i + 2));
+        // }
 
-        // tokenMapに含まれるトークンでFirestoreクエリを実行するためのwhere条件を追加
-        tokens.forEach((token) => {
-          queryConstraints.push(where(`tokenMap.${token}`, "==", true));
-        });
+        // // tokenMapに含まれるトークンでFirestoreクエリを実行するためのwhere条件を追加
+        // tokens.forEach((token) => {
+        //   queryConstraints.push(where(`tokenMap.${token}`, "==", true));
+        // });
+        queryConstraints.push(...this.#createTokenMapQuerys(constraints));
+
+        // options で指定されたクエリ条件を追加
+        queryConstraints.push(...this.#createQuerys(options));
       } else if (Array.isArray(constraints)) {
-        // 通常のクエリ条件（where, orderBy, limit）を処理
-        const validQueryTypes = ["where", "orderBy", "limit"];
-        constraints.forEach((constraint) => {
-          const [type, ...args] = constraint;
-          switch (type) {
-            case "where":
-              queryConstraints.push(where(...args));
-              break;
-            case "orderBy":
-              queryConstraints.push(orderBy(args[0], args[1] || "asc"));
-              break;
-            case "limit":
-              queryConstraints.push(limit(args[0]));
-              break;
-            default:
-              // eslint-disable-next-line no-console
-              console.warn(
-                `Unknown query type: ${type}. Valid query types are: ${validQueryTypes.join(
-                  ", "
-                )}`
-              );
-              throw new Error(
-                `Invalid query type: ${type}. Please use one of: ${validQueryTypes.join(
-                  ", "
-                )}`
-              );
-          }
-        });
+        // // 通常のクエリ条件（where, orderBy, limit）を処理
+        // const validQueryTypes = ["where", "orderBy", "limit"];
+        // constraints.forEach((constraint) => {
+        //   const [type, ...args] = constraint;
+        //   switch (type) {
+        //     case "where":
+        //       queryConstraints.push(where(...args));
+        //       break;
+        //     case "orderBy":
+        //       queryConstraints.push(orderBy(args[0], args[1] || "asc"));
+        //       break;
+        //     case "limit":
+        //       queryConstraints.push(limit(args[0]));
+        //       break;
+        //     default:
+        //       // eslint-disable-next-line no-console
+        //       console.warn(
+        //         `Unknown query type: ${type}. Valid query types are: ${validQueryTypes.join(
+        //           ", "
+        //         )}`
+        //       );
+        //       throw new Error(
+        //         `Invalid query type: ${type}. Please use one of: ${validQueryTypes.join(
+        //           ", "
+        //         )}`
+        //       );
+        //   }
+        // });
+        queryConstraints.push(...this.#createQuerys(constraints));
       } else {
         console.warn(getMessage(sender, "CONSTRAINTS_MUST_BE_STRING_OR_ARRAY"));
         return;
