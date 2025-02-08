@@ -147,7 +147,12 @@ const firebaseApp = getApps().length
 
 // firebaseの各種サービスを取得
 const auth = getAuth(firebaseApp);
-const functions = getFunctions(firebaseApp);
+/**
+ * 2025-02-28 functions はロケーションを設定しておかないと onCall でも CORS エラーが発生する。
+ * .env ファイルの設定に追加したい。
+ */
+// const functions = getFunctions(firebaseApp);
+const functions = getFunctions(firebaseApp, "asia-northeast1");
 const firestore = getFirestore(firebaseApp);
 const database = getDatabase(firebaseApp);
 const storage = getStorage(firebaseApp);

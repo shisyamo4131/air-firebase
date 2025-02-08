@@ -136,7 +136,8 @@ var firebaseApp = (0, _app.getApps)().length ? (0, _app.getApps)()[0] : (0, _app
 
 // firebaseの各種サービスを取得
 var auth = exports.auth = (0, _auth.getAuth)(firebaseApp);
-var functions = exports.functions = (0, _functions.getFunctions)(firebaseApp);
+// const functions = getFunctions(firebaseApp);
+var functions = exports.functions = (0, _functions.getFunctions)(firebaseApp, "asia-northeast1");
 var firestore = exports.firestore = (0, _firestore.getFirestore)(firebaseApp);
 var database = exports.database = (0, _database.getDatabase)(firebaseApp);
 var storage = exports.storage = (0, _storage.getStorage)(firebaseApp);
